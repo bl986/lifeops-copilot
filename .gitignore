@@ -1,0 +1,13 @@
+﻿# Python / Virtual Environment
+venv/
+__pycache__/
+*.py[cod]
+*.class
+.pytest_cache/
+
+# Environment variables & secrets
+.env
+.env.local
+
+# SQLite Database (keep migrations/schema, ignore local runtime data if desired)
+data/*.db
