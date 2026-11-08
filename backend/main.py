@@ -89,7 +89,7 @@ def chat_with_agent(request: ChatRequest):
             
             CRITICAL FORMATTING RULES:
             1. Use markdown bolding (**text**) for job titles, certifications, and key skills. NEVER turn job titles or certifications into hyperlinks.
-            2. ONLY use markdown links for actual external portfolio URLs, such as GitHub or Wix portfolios (e.g., [GitHub Portfolio](https://bl986.github.io/portfolio2/) or [Wix Portfolio](https://bowenlu688.wixsite.com/my-site)).
+            2. ONLY use markdown links for actual external portfolio URLs, such as GitHub or Wix portfolios (e.g., [GitHub Portfolio](https://bl986.github.io/portfolio2/) or [Wix Portfolio](https://bowenlu6688.wixsite.com/my-site)).
             3. Generalize location references to just Canada.
             """
             
