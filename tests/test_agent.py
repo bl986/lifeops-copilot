@@ -45,3 +45,27 @@ def test_tool_selection_eval(question, expected_tool):
     result = agent.run_agent(question)
     assert result["status"] == "success"
     assert expected_tool in [c["tool"] for c in result["tools_called"]]
+
+def test_followups_exclude_the_question_just_asked():
+    asked = "What tasks are pending?"
+    picks = agent.suggest_followups(asked, [{"tool": "query_database"}])
+    assert len(picks) == 3
+    assert len(set(picks)) == 3
+    assert asked not in picks
+
+
+def test_followups_lean_towards_the_tool_used():
+    picks = agent.suggest_followups("Hi", [{"tool": "get_portfolio"}])
+    assert len([p for p in picks if p in agent.PORTFOLIO_PROMPTS]) == 2
+    picks = agent.suggest_followups("Hi", [{"tool": "query_database"}])
+    assert len([p for p in picks if p in agent.DATABASE_PROMPTS]) == 2
+
+
+def test_every_suggestion_comes_from_the_known_pool():
+    allowed = set(agent.PORTFOLIO_PROMPTS + agent.DATABASE_PROMPTS)
+    assert set(agent.suggest_followups("anything", [])) <= allowed
+
+
+def test_run_agent_includes_suggestions(monkeypatch):
+    monkeypatch.setattr(agent, "_call_model", lambda m, t: "ok")
+    assert len(agent.run_agent("hi")["suggestions"]) == 3

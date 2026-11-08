@@ -94,10 +94,28 @@
         scrollToBottom();
     }
 
-    function addAssistantMessage(text, isNotice) {
+    function addAssistantMessage(text, isNotice, suggestions) {
         const { content } = createRow('assistant');
         content.innerHTML = renderMarkdown(text);
         if (isNotice) content.classList.add('notice');
+        if (Array.isArray(suggestions) && suggestions.length) {
+            const bar = document.createElement('div');
+            bar.className = 'followups';
+            const label = document.createElement('span');
+            label.className = 'followups-label';
+            label.textContent = 'Try asking:';
+            bar.appendChild(label);
+            suggestions.slice(0, 3).forEach((s) => {
+                if (typeof s !== 'string') return;
+                const btn = document.createElement('button');
+                btn.type = 'button';
+                btn.className = 'followup';
+                btn.textContent = s;
+                btn.dataset.prompt = s;
+                bar.appendChild(btn);
+            });
+            content.appendChild(bar);
+        }
         scrollToBottom();
     }
 
@@ -125,6 +143,7 @@
         if (!text || busy) return;
 
         setBusy(true);
+        thread.querySelectorAll('.followups').forEach((el) => el.remove());
         if (welcome) welcome.hidden = true;
         addUserMessage(text);
         input.value = '';
@@ -154,7 +173,7 @@
                 reply = 'Sorry, something went wrong. Please try again.';
             }
             typing.row.remove();
-            addAssistantMessage(reply, !res.ok);
+            addAssistantMessage(reply, !res.ok, res.ok && data ? data.suggestions : null);
         } catch (err) {
             typing.row.remove();
             addAssistantMessage('Could not reach the server. Please check your connection and try again.', true);
@@ -177,17 +196,25 @@
     });
     input.addEventListener('input', autoResize);
 
-    // Example prompts: copy into the box for editing; do not send.
+    // Example and follow-up prompts: copy into the box for editing; do not send.
+    function usePrompt(text) {
+        input.value = text;
+        autoResize();
+        input.focus();
+        input.setSelectionRange(input.value.length, input.value.length);
+    }
+
     if (welcome) {
         welcome.addEventListener('click', (e) => {
             const btn = e.target.closest('.example');
-            if (!btn) return;
-            input.value = btn.dataset.prompt || '';
-            autoResize();
-            input.focus();
-            input.setSelectionRange(input.value.length, input.value.length);
+            if (btn) usePrompt(btn.dataset.prompt || '');
         });
     }
+
+    thread.addEventListener('click', (e) => {
+        const btn = e.target.closest('.followup');
+        if (btn) usePrompt(btn.dataset.prompt || '');
+    });
 
     if (newChatBtn) {
         newChatBtn.addEventListener('click', () => {

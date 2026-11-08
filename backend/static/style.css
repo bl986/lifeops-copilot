@@ -260,3 +260,21 @@ body {
 @media (prefers-reduced-motion: reduce) {
     * { animation: none !important; scroll-behavior: auto !important; transition: none !important; }
 }
+
+.followups { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; }
+.followups-label { flex-basis: 100%; font-size: 0.75rem; color: #8e9196; }
+.followup {
+    background: transparent;
+    border: 1px solid #3f4044;
+    color: #e3e3e3;
+    font: inherit;
+    font-size: 0.85rem;
+    line-height: 1.3;
+    text-align: left;
+    padding: 7px 12px;
+    border-radius: 16px;
+    cursor: pointer;
+    transition: background 0.15s, border-color 0.15s;
+}
+.followup:hover { background: #28292c; border-color: #3b82f6; }
+.followup:focus-visible { outline: 2px solid #3b82f6; outline-offset: 2px; }

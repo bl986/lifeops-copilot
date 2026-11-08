@@ -1,5 +1,6 @@
 """Agent: Gemini function calling over the portfolio and database tools."""
 import os
+import random
 
 from google import genai
 from google.genai import types
@@ -34,6 +35,36 @@ Formatting:
 
 GENERIC_ERROR = "Sorry, something went wrong on my side. Please try again in a moment."
 
+PORTFOLIO_PROMPTS = [
+    "What is Bowen's professional background?",
+    "Show me Bowen's projects and portfolio links.",
+    "Which AI/ML products does Bowen have experience with?",
+    "What certifications does Bowen hold?",
+    "Where did Bowen study?",
+    "How was this app built?",
+]
+DATABASE_PROMPTS = [
+    "What tasks are pending?",
+    "How much did I spend on groceries?",
+    "Which expense category had the highest total spending?",
+    "What is the total of all my expenses?",
+    "Which tasks are due soonest?",
+    "Show all completed tasks.",
+]
+
+
+def suggest_followups(asked: str, tools_called: list, count: int = 3) -> list:
+    """Pick follow-up prompts the agent is known to handle (curated pool, no extra model call)."""
+    asked_norm = asked.strip().lower()
+    used = {c["tool"] for c in tools_called}
+
+    portfolio = [p for p in PORTFOLIO_PROMPTS if p.lower() != asked_norm]
+    database = [p for p in DATABASE_PROMPTS if p.lower() != asked_norm]
+    primary, secondary = (database, portfolio) if "query_database" in used else (portfolio, database)
+
+    first = random.sample(primary, min(count - 1, len(primary)))
+    rest = random.sample(secondary, min(count - len(first), len(secondary)))
+    return first + rest
 
 def build_tools(trace: list):
     """Create the tool functions Gemini may call; each call is recorded in `trace`."""
@@ -88,4 +119,5 @@ def run_agent(message: str) -> dict:
         "response": result["response"],
         "latency": result["latency_seconds"],
         "tools_called": trace,
+        "suggestions": suggest_followups(message, trace),
     }
