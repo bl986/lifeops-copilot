@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -27,6 +27,9 @@
             display: flex;
             flex-direction: column;
             box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+            position: relative;
+            overflow: hidden;
+            transform: translateZ(0);
         }
         @media (min-width: 768px) {
             .chat-container {
@@ -45,6 +48,7 @@
             font-weight: 600;
             font-size: 0.95rem;
             color: #f1f1f1;
+            flex-shrink: 0;
         }
         .status-dot {
             width: 8px;
@@ -129,6 +133,7 @@
             padding: 20px 24px;
             background: #1e1f20;
             border-top: 1px solid #2d2e30;
+            flex-shrink: 0;
         }
         .input-wrapper {
             display: flex;
@@ -169,7 +174,7 @@
             cursor: pointer;
             transition: background 0.2s, transform 0.1s;
         }
-        .send-btn:hover {
+    .send-btn:hover {
             background: #ffffff;
             transform: scale(1.05);
         }
@@ -249,15 +254,31 @@
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ message: text })
                 });
-                const data = await res.json();
-                document.getElementById(typingId).remove();
+
+                const rawText = await res.text();
+                const typingEl = document.getElementById(typingId);
+                if (typingEl) typingEl.remove();
+
+                let responseMsg = "Received empty response from server.";
+                if (rawText.trim().startsWith('<')) {
+                    responseMsg = "Server error: Received HTML error response instead of JSON.";
+                } else {
+                    try {
+                        const data = JSON.parse(rawText);
+                        responseMsg = data.response || JSON.stringify(data);
+                    } catch (parseErr) {
+                        responseMsg = rawText;
+                    }
+                }
+
                 messages.innerHTML += 
                     <div class="message-row assistant">
                         <div class="avatar">AI</div>
                         <div class="message-content"></div>
                     </div>;
             } catch (err) {
-                document.getElementById(typingId).remove();
+                const typingEl = document.getElementById(typingId);
+                if (typingEl) typingEl.remove();
                 messages.innerHTML += 
                     <div class="message-row assistant">
                         <div class="avatar">AI</div>
@@ -268,7 +289,7 @@
         }
 
         function escapeHtml(str) {
-            return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+            return String(str).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
         }
 
         sendBtn.addEventListener('click', sendMessage);
