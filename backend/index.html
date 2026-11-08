@@ -199,6 +199,7 @@
     </style>
 </head>
 <body>
+    <!-- Build timestamp: 11/07/2026 20:30:10 -->
     <div class="chat-container">
         <div class="chat-header">
             <div class="status-dot"></div>
@@ -258,17 +259,21 @@
                         body: JSON.stringify({ message: text })
                     });
 
-                    // ALWAYS read as plain text first to prevent JSON.parse crashes on HTML error pages
                     const rawText = await res.text();
                     const typingEl = document.getElementById(typingId);
                     if (typingEl) typingEl.remove();
 
                     let displayText = "";
-                    try {
-                        const data = JSON.parse(rawText);
-                        displayText = data.response || JSON.stringify(data);
-                    } catch (jsonErr) {
-                        displayText = "Server returned non-JSON output: " + rawText.substring(0, 150);
+                    // Guard against HTML error pages before parsing
+                    if (rawText.trim().startsWith('<')) {
+                        displayText = "Server returned HTML error page instead of JSON. Check Render logs.";
+                    } else {
+                        try {
+                            const data = JSON.parse(rawText);
+                            displayText = data.response || JSON.stringify(data);
+                        } catch (err) {
+                            displayText = "Parsing error: " + rawText.substring(0, 150);
+                        }
                     }
 
                     messages.innerHTML += 
