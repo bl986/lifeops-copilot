@@ -52,7 +52,7 @@ def chat_with_agent(request: ChatRequest):
         else:
             context = get_portfolio()
 
-        prompt = f\"\"\"
+        prompt = f"""
         You are the AI portfolio copilot for a Cloud Solution Engineer / Technical Support expert.
         Here is the retrieved data from the user's system based on their query:
         {context}
@@ -60,7 +60,7 @@ def chat_with_agent(request: ChatRequest):
         User Query: "{request.message}"
         
         Provide a concise, professional, and engaging response to the hiring manager or visitor. Highlight technical competence and career background naturally.
-        \"\"\"
+        """
         
         response = client.models.generate_content(
             model="gemini-3.5-flash-lite",
