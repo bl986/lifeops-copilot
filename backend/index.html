@@ -4,29 +4,214 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>LifeOps OS | AI Portfolio Copilot</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
     <style>
-        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #0f172a; color: #f8fafc; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
-        .chat-container { width: 100%; max-width: 600px; background: #1e293b; border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.3); display: flex; flex-direction: column; overflow: hidden; height: 80vh; }
-        .chat-header { background: #334155; padding: 20px; font-weight: 600; font-size: 1.1rem; border-bottom: 1px solid #475569; }
-        .chat-messages { flex: 1; padding: 20px; overflow-y: auto; display: flex; flex-direction: column; gap: 15px; }
-        .message { padding: 12px 16px; border-radius: 8px; max-width: 80%; line-height: 1.5; word-break: break-word; white-space: pre-wrap; }
-        .user { background: #3b82f6; align-self: flex-end; color: white; }
-        .assistant { background: #334155; align-self: flex-start; color: #e2e8f0; border: 1px solid #475569; }
-        .chat-input { display: flex; padding: 15px; background: #1e293b; border-top: 1px solid #475569; }
-        .chat-input input { flex: 1; padding: 12px; border-radius: 6px; border: 1px solid #475569; background: #0f172a; color: white; outline: none; font-size: 1rem; }
-        .chat-input button { background: #3b82f6; color: white; border: none; padding: 0 20px; margin-left: 10px; border-radius: 6px; font-weight: 600; cursor: pointer; transition: background 0.2s; }
-        .chat-input button:hover { background: #2563eb; }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background-color: #131314;
+            color: #e3e3e3;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            overflow: hidden;
+        }
+        .chat-container {
+            width: 100%;
+            max-width: 768px;
+            height: 100vh;
+            background: #1e1f20;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+        }
+        @media (min-width: 768px) {
+            .chat-container {
+                height: 85vh;
+                border-radius: 16px;
+                border: 1px solid #2d2e30;
+            }
+        }
+        .chat-header {
+            padding: 18px 24px;
+            background: #1e1f20;
+            border-bottom: 1px solid #2d2e30;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-weight: 600;
+            font-size: 0.95rem;
+            color: #f1f1f1;
+        }
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            background-color: #22c55e;
+            border-radius: 50%;
+            box-shadow: 0 0 8px rgba(34, 197, 94, 0.4);
+        }
+        .chat-messages {
+            flex: 1;
+            padding: 24px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            scroll-behavior: smooth;
+        }
+        .chat-messages::-webkit-scrollbar {
+            width: 6px;
+        }
+        .chat-messages::-webkit-scrollbar-thumb {
+            background: #3c3d40;
+            border-radius: 3px;
+        }
+        .message-row {
+            display: flex;
+            gap: 16px;
+            max-width: 85%;
+            animation: fadeIn 0.3s ease;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(6px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .message-row.user {
+            align-self: flex-end;
+            flex-direction: row-reverse;
+        }
+        .message-row.assistant {
+            align-self: flex-start;
+        }
+        .avatar {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.85rem;
+            flex-shrink: 0;
+            font-weight: 600;
+        }
+        .user .avatar {
+            background: #3b82f6;
+            color: white;
+        }
+        .assistant .avatar {
+            background: #2b2c2f;
+            color: #38bdf8;
+            border: 1px solid #3f4044;
+        }
+        .message-content {
+            padding: 12px 16px;
+            border-radius: 12px;
+            line-height: 1.6;
+            font-size: 0.95rem;
+            word-break: break-word;
+            white-space: pre-wrap;
+        }
+        .user .message-content {
+            background: #2b313b;
+            color: #f3f4f6;
+            border-top-right-radius: 4px;
+        }
+        .assistant .message-content {
+            background: #28292c;
+            color: #e3e3e3;
+            border-top-left-radius: 4px;
+            border: 1px solid #323337;
+        }
+        .chat-input-area {
+            padding: 20px 24px;
+            background: #1e1f20;
+            border-top: 1px solid #2d2e30;
+        }
+        .input-wrapper {
+            display: flex;
+            align-items: center;
+            background: #28292c;
+            border: 1px solid #3f4044;
+            border-radius: 12px;
+            padding: 8px 12px;
+            transition: border-color 0.2s;
+        }
+        .input-wrapper:focus-within {
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.15);
+        }
+        .input-wrapper input {
+            flex: 1;
+            background: transparent;
+            border: none;
+            color: #f1f1f1;
+            font-size: 0.95rem;
+            outline: none;
+            font-family: inherit;
+            padding: 6px;
+        }
+        .input-wrapper input::placeholder {
+            color: #8e9196;
+        }
+        .send-btn {
+            background: #f1f1f1;
+            color: #131314;
+            border: none;
+            width: 36px;
+            height: 36px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: background 0.2s, transform 0.1s;
+        }
+        .send-btn:hover {
+            background: #ffffff;
+            transform: scale(1.05);
+        }
+        .send-btn svg {
+            width: 18px;
+            height: 18px;
+            fill: currentColor;
+        }
+        .typing-dot {
+            width: 6px;
+            height: 6px;
+            background: #8e9196;
+            border-radius: 50%;
+            animation: bounce 1.4s infinite ease-in-out both;
+        }
+        .typing-dot:nth-child(1) { animation-delay: -0.32s; }
+        .typing-dot:nth-child(2) { animation-delay: -0.16s; }
+        @keyframes bounce {
+            0%, 80%, 100% { transform: scale(0); }
+            40% { transform: scale(1.0); }
+        }
     </style>
 </head>
 <body>
     <div class="chat-container">
-        <div class="chat-header">🤖 LifeOps OS - AI Portfolio Copilot</div>
-        <div class="chat-messages" id="messages">
-            <div class="message assistant">Hello! I'm Bowen's AI portfolio copilot. Ask me about professional experience, GCP projects, or system tasks.</div>
+        <div class="chat-header">
+            <div class="status-dot"></div>
+            <span>LifeOps OS — AI Portfolio Copilot</span>
         </div>
-        <div class="chat-input">
-            <input type="text" id="userInput" placeholder="Ask about my background, projects, or tasks...">
-            <button id="sendBtn">Send</button>
+        <div class="chat-messages" id="messages">
+            <div class="message-row assistant">
+                <div class="avatar">AI</div>
+                <div class="message-content">Hello! I'm Bowen's AI portfolio copilot. Ask me about professional experience, GCP projects, or system tasks.</div>
+            </div>
+        </div>
+        <div class="chat-input-area">
+            <div class="input-wrapper">
+                <input type="text" id="userInput" placeholder="Ask about my background, projects, or tasks...">
+                <button class="send-btn" id="sendBtn" title="Send message">
+                    <svg viewBox="0 0 24 24"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"></path></svg>
+                </button>
+            </div>
         </div>
     </div>
     <script>
@@ -38,8 +223,24 @@
             const text = input.value.trim();
             if (!text) return;
 
-            messages.innerHTML += '<div class="message user">' + escapeHtml(text) + '</div>';
+            messages.innerHTML += 
+                <div class="message-row user">
+                    <div class="avatar">U</div>
+                    <div class="message-content"></div>
+                </div>;
             input.value = '';
+            messages.scrollTop = messages.scrollHeight;
+
+            const typingId = 'typing-' + Date.now();
+            messages.innerHTML += 
+                <div class="message-row assistant" id="">
+                    <div class="avatar">AI</div>
+                    <div class="message-content" style="display: flex; align-items: center; gap: 4px;">
+                        <div class="typing-dot"></div>
+                        <div class="typing-dot"></div>
+                        <div class="typing-dot"></div>
+                    </div>
+                </div>;
             messages.scrollTop = messages.scrollHeight;
 
             try {
@@ -49,9 +250,19 @@
                     body: JSON.stringify({ message: text })
                 });
                 const data = await res.json();
-                messages.innerHTML += '<div class="message assistant">' + escapeHtml(data.response) + '</div>';
+                document.getElementById(typingId).remove();
+                messages.innerHTML += 
+                    <div class="message-row assistant">
+                        <div class="avatar">AI</div>
+                        <div class="message-content"></div>
+                    </div>;
             } catch (err) {
-                messages.innerHTML += '<div class="message assistant" style="color: #ef4444;">Error connecting to agent server.</div>';
+                document.getElementById(typingId).remove();
+                messages.innerHTML += 
+                    <div class="message-row assistant">
+                        <div class="avatar">AI</div>
+                        <div class="message-content" style="color: #ef4444;">Error connecting to agent server.</div>
+                    </div>;
             }
             messages.scrollTop = messages.scrollHeight;
         }
