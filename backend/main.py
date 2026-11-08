@@ -54,11 +54,16 @@ def chat_with_agent(request: ChatRequest):
         from google import genai
         from google.genai import types
         from backend.mcp_server import get_portfolio, query_database
+        from backend.skills_loader import load_agent_skills
+        from backend.harness import AgentHarness
         
-        client = genai.Client(api_key=api_key)
+        # Initialize Harness & Load Skills
+        harness = AgentHarness(agent_name="LifeOps-Portfolio-Copilot")
+        skills_prompt = load_agent_skills()
+        
         user_msg = request.message.lower()
         
-        context = ""
+        # Retrieve MCP context
         if "portfolio" in user_msg or "project" in user_msg or "experience" in user_msg or "wix" in user_msg or "github" in user_msg:
             context = get_portfolio()
         elif "expense" in user_msg or "task" in user_msg or "spend" in user_msg or "show" in user_msg:
@@ -66,32 +71,45 @@ def chat_with_agent(request: ChatRequest):
         else:
             context = get_portfolio()
 
-        prompt = f"""
-        You are the AI portfolio copilot for a Cloud Support Engineer and Technical Support expert.
-        Here is the retrieved data from the user's system based on their query:
-        {context}
-        
-        User Query: "{request.message}"
-        
-        Provide a concise, professional, and engaging response to the hiring manager or visitor. Highlight technical competence and career background naturally.
-        
-        CRITICAL FORMATTING RULES:
-        1. Use markdown bolding (**text**) for job titles, certifications, and key skills (e.g., **GCP Technical Support Representative**, **Google Cloud Associate Cloud Engineer**). NEVER turn job titles or certifications into hyperlinks.
-        2. ONLY use markdown links for actual external portfolio URLs, such as GitHub or Wix portfolios (e.g., [GitHub Portfolio](https://bl986.github.io/portfolio2/) or [Wix Portfolio](https://bowenlu688.wixsite.com/my-site)). Do not link random product names or job titles.
-        """
-        
-        response = client.models.generate_content(
-            model="gemini-3.5-flash-lite",
-            contents=prompt,
-            config=types.GenerateContentConfig(
-                max_output_tokens=1500,
-                temperature=0.7
+        # Define generation logic to be wrapped by the harness
+        def run_generation():
+            client = genai.Client(api_key=api_key)
+            prompt = f"""
+            You are the AI portfolio copilot for Bowen Lu.
+            
+            --- RETRIEVED DATA ---
+            {context}
+            
+            --- AGENT SKILLS & GUIDELINES ---
+            {skills_prompt}
+            
+            User Query: "{request.message}"
+            
+            Provide a concise, professional, and engaging response.
+            
+            CRITICAL FORMATTING RULES:
+            1. Use markdown bolding (**text**) for job titles, certifications, and key skills. NEVER turn job titles or certifications into hyperlinks.
+            2. ONLY use markdown links for actual external portfolio URLs, such as GitHub or Wix portfolios (e.g., [GitHub Portfolio](https://bl986.github.io/portfolio2/) or [Wix Portfolio](https://bowenlu688.wixsite.com/my-site)).
+            3. Generalize location references to just Canada.
+            """
+            
+            response = client.models.generate_content(
+                model="gemini-3.5-flash-lite",
+                contents=prompt,
+                config=types.GenerateContentConfig(
+                    max_output_tokens=1500,
+                    temperature=0.7
+                )
             )
-        )
+            return response.text
+
+        # Execute through the harness wrapper
+        harness_result = harness.execute(request.message, run_generation)
         
         return {
             "query": request.message,
-            "response": response.text,
+            "response": harness_result["response"],
+            "latency": harness_result["latency_seconds"],
             "tool_context_used": context[:150] + "..."
         }
     except Exception as e:
