@@ -40,22 +40,24 @@
             const typingEl = document.getElementById(typingId);
             if (typingEl) typingEl.remove();
 
-            let displayText = "";
+            let htmlOutput = "";
             if (rawText.trim().startsWith('<')) {
-                displayText = "Server returned HTML error page instead of JSON. Check Render logs.";
+                htmlOutput = "<p style='color: #ef4444;'>Server returned HTML error page instead of JSON. Check Render logs.</p>";
             } else {
                 try {
                     const data = JSON.parse(rawText);
-                    displayText = data.response || JSON.stringify(data);
+                    const markdownText = data.response || JSON.stringify(data);
+                    // Parse markdown to HTML using marked.js
+                    htmlOutput = marked.parse(markdownText);
                 } catch (err) {
-                    displayText = "Parsing error: " + rawText.substring(0, 150);
+                    htmlOutput = "<p>Parsing error: " + escapeHtml(rawText.substring(0, 150)) + "</p>";
                 }
             }
 
             messages.innerHTML += `
                 <div class="message-row assistant">
                     <div class="avatar">AI</div>
-                    <div class="message-content">${escapeHtml(displayText)}</div>
+                    <div class="message-content markdown-body">${htmlOutput}</div>
                 </div>`;
         } catch (err) {
             const typingEl = document.getElementById(typingId);
