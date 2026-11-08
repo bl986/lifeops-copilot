@@ -1,48 +1,139 @@
 ﻿document.addEventListener('DOMContentLoaded', () => {
     const input = document.getElementById('userInput');
-    const messages = document.getElementById('messages');
+    const scroller = document.getElementById('messages');
+    const thread = document.getElementById('thread');
+    const welcome = document.getElementById('welcome');
     const sendBtn = document.getElementById('sendBtn');
+    const newChatBtn = document.getElementById('newChatBtn');
 
-    if (!input || !sendBtn || !messages) return;
+    if (!input || !scroller || !thread || !sendBtn) return;
 
-    function parseMarkdown(text) {
-        if (typeof marked !== 'undefined' && typeof marked.parse === 'function') {
-            return marked.parse(text);
-        }
-        // Fallback markdown converter with strict link matching
-        let html = escapeHtml(text);
-        // Only convert actual markdown links: [Text](http...)
-        html = html.replace(/\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>');
-        // Convert bold: **text** -> <strong>text</strong>
-        html = html.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
-        // Convert newlines to breaks
-        html = html.replace(/\n/g, '<br>');
-        return `<p>${html}</p>`;
+    let busy = false;
+
+    // ---------- Safe markdown rendering ----------
+    // All text is HTML-escaped first; only the tags generated below can appear in the page.
+    function escapeHtml(str) {
+        return String(str)
+            .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
     }
 
+    function inline(text) {
+        return text
+            .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
+            .replace(/\*(\S(?:[^*\n]*\S)?)\*/g, '<em>$1</em>')
+            .replace(/`([^`]+)`/g, '<code>$1</code>')
+            .replace(/\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g,
+                '<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>');
+    }
+
+    function renderMarkdown(text) {
+        const lines = escapeHtml(text).replace(/\r/g, '').split('\n');
+        const out = [];
+        let list = null;
+        let para = [];
+
+        const flushPara = () => {
+            if (para.length) {
+                out.push('<p>' + para.map(inline).join('<br>') + '</p>');
+                para = [];
+            }
+        };
+        const closeList = () => {
+            if (list) {
+                out.push('</' + list + '>');
+                list = null;
+            }
+        };
+
+        for (const line of lines) {
+            const ul = line.match(/^\s*[*-]\s+(.*)$/);
+            const ol = line.match(/^\s*\d+[.)]\s+(.*)$/);
+            if (ul || ol) {
+                flushPara();
+                const type = ul ? 'ul' : 'ol';
+                if (list !== type) {
+                    closeList();
+                    out.push('<' + type + '>');
+                    list = type;
+                }
+                out.push('<li>' + inline((ul || ol)[1]) + '</li>');
+            } else if (line.trim() === '') {
+                flushPara();
+                closeList();
+            } else {
+                closeList();
+                para.push(line);
+            }
+        }
+        flushPara();
+        closeList();
+        return out.join('');
+    }
+
+    // ---------- Chat helpers ----------
+    function scrollToBottom() {
+        scroller.scrollTop = scroller.scrollHeight;
+    }
+
+    function createRow(role) {
+        const row = document.createElement('div');
+        row.className = 'message-row ' + role;
+        const avatar = document.createElement('div');
+        avatar.className = 'avatar';
+        avatar.textContent = role === 'user' ? 'U' : 'AI';
+        const content = document.createElement('div');
+        content.className = 'message-content';
+        row.append(avatar, content);
+        thread.appendChild(row);
+        return { row, content };
+    }
+
+    function addUserMessage(text) {
+        createRow('user').content.textContent = text;
+        scrollToBottom();
+    }
+
+    function addAssistantMessage(text, isNotice) {
+        const { content } = createRow('assistant');
+        content.innerHTML = renderMarkdown(text);
+        if (isNotice) content.classList.add('notice');
+        scrollToBottom();
+    }
+
+    function addTyping() {
+        const { row, content } = createRow('assistant');
+        content.innerHTML = '<div class="typing"><span class="typing-dot"></span><span class="typing-dot"></span><span class="typing-dot"></span></div><div class="typing-note"></div>';
+        scrollToBottom();
+        return { row, note: content.querySelector('.typing-note') };
+    }
+
+    function setBusy(value) {
+        busy = value;
+        sendBtn.disabled = value;
+        if (newChatBtn) newChatBtn.disabled = value;
+    }
+
+    function autoResize() {
+        input.style.height = 'auto';
+        input.style.height = Math.min(input.scrollHeight, 200) + 'px';
+    }
+
+    // ---------- Sending ----------
     async function sendMessage() {
         const text = input.value.trim();
-        if (!text) return;
+        if (!text || busy) return;
 
-        messages.innerHTML += `
-            <div class="message-row user">
-                <div class="avatar">U</div>
-                <div class="message-content">${escapeHtml(text)}</div>
-            </div>`;
+        setBusy(true);
+        if (welcome) welcome.hidden = true;
+        addUserMessage(text);
         input.value = '';
-        messages.scrollTop = messages.scrollHeight;
+        autoResize();
 
-        const typingId = 'typing-' + Date.now();
-        messages.innerHTML += `
-            <div class="message-row assistant" id="${typingId}">
-                <div class="avatar">AI</div>
-                <div class="message-content" style="display: flex; align-items: center; gap: 4px;">
-                    <div class="typing-dot"></div>
-                    <div class="typing-dot"></div>
-                    <div class="typing-dot"></div>
-                </div>
-            </div>`;
-        messages.scrollTop = messages.scrollHeight;
+        const typing = addTyping();
+        const wakeTimer = setTimeout(() => {
+            typing.note.textContent = 'Waking up the server (free hosting can take up to a minute)...';
+        }, 6000);
 
         try {
             const res = await fetch('/chat', {
@@ -50,49 +141,65 @@
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ message: text })
             });
+            const raw = await res.text();
+            let data = null;
+            try { data = JSON.parse(raw); } catch (_) { /* not JSON */ }
 
-            const rawText = await res.text();
-            const typingEl = document.getElementById(typingId);
-            if (typingEl) typingEl.remove();
-
-            let htmlOutput = "";
-            if (rawText.trim().startsWith('<')) {
-                htmlOutput = "<p style='color: #ef4444;'>Server returned HTML error page instead of JSON. Check Render logs.</p>";
+            let reply;
+            if (data && typeof data.response === 'string') {
+                reply = data.response;
+            } else if (res.status === 422) {
+                reply = 'Please keep your message between 1 and 500 characters.';
             } else {
-                try {
-                    const data = JSON.parse(rawText);
-                    const markdownText = data.response || JSON.stringify(data);
-                    htmlOutput = parseMarkdown(markdownText);
-                } catch (err) {
-                    htmlOutput = parseMarkdown(rawText);
-                }
+                reply = 'Sorry, something went wrong. Please try again.';
             }
-
-            messages.innerHTML += `
-                <div class="message-row assistant">
-                    <div class="avatar">AI</div>
-                    <div class="message-content markdown-body">${htmlOutput}</div>
-                </div>`;
+            typing.row.remove();
+            addAssistantMessage(reply, !res.ok);
         } catch (err) {
-            const typingEl = document.getElementById(typingId);
-            if (typingEl) typingEl.remove();
-            messages.innerHTML += `
-                <div class="message-row assistant">
-                    <div class="avatar">AI</div>
-                    <div class="message-content" style="color: #ef4444;">Network Error: ${escapeHtml(err.message)}</div>
-                </div>`;
+            typing.row.remove();
+            addAssistantMessage('Could not reach the server. Please check your connection and try again.', true);
+        } finally {
+            clearTimeout(wakeTimer);
+            setBusy(false);
+            input.focus();
         }
-        messages.scrollTop = messages.scrollHeight;
     }
 
-    function escapeHtml(str) {
-        return String(str)
-            .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
-            .replace(/"/g, "&quot;").replace(/'/g, "&#39;");
-    }
-
+    // ---------- Events ----------
     sendBtn.addEventListener('click', sendMessage);
-    input.addEventListener('keypress', function(e) {
-        if (e.key === 'Enter') sendMessage();
+
+    input.addEventListener('keydown', (e) => {
+        // Enter sends; Shift+Enter inserts a new line. Skip while an IME is composing text.
+        if (e.key === 'Enter' && !e.shiftKey && !e.isComposing) {
+            e.preventDefault();
+            sendMessage();
+        }
     });
+    input.addEventListener('input', autoResize);
+
+    // Example prompts: copy into the box for editing; do not send.
+    if (welcome) {
+        welcome.addEventListener('click', (e) => {
+            const btn = e.target.closest('.example');
+            if (!btn) return;
+            input.value = btn.dataset.prompt || '';
+            autoResize();
+            input.focus();
+            input.setSelectionRange(input.value.length, input.value.length);
+        });
+    }
+
+    if (newChatBtn) {
+        newChatBtn.addEventListener('click', () => {
+            if (busy) return;
+            thread.innerHTML = '';
+            if (welcome) welcome.hidden = false;
+            input.value = '';
+            autoResize();
+            scroller.scrollTop = 0;
+            input.focus();
+        });
+    }
+
+    input.focus();
 });

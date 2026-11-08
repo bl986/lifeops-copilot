@@ -7,25 +7,55 @@
 <link rel="stylesheet" href="/static/style.css">
 </head>
 <body>
-<div class="chat-container">
-    <div class="chat-header">
-        <span class="status-dot"></span>
-        <span>LifeOps OS - AI Portfolio Copilot</span>
-    </div>
-    <div id="messages" class="chat-messages">
-        <div class="message-row assistant">
-            <div class="avatar">AI</div>
-            <div class="message-content">Hello! I'm Bowen's AI portfolio copilot. Ask me about professional experience, GCP projects, or how this app was built.</div>
+<div class="app">
+    <header class="topbar">
+        <div class="brand">
+            <span class="status-dot"></span>
+            <span>LifeOps OS</span>
+            <span class="brand-sub">AI Portfolio Copilot</span>
         </div>
-    </div>
-    <div class="chat-input-area">
-        <div class="input-wrapper">
-            <input type="text" id="userInput" placeholder="Ask about Bowen's experience and projects..." autocomplete="off" maxlength="500">
-            <button type="button" id="sendBtn" class="send-btn" aria-label="Send">
-                <svg viewBox="0 0 24 24"><path d="M2 21l21-9L2 3v7l15 2-15 2z"/></svg>
-            </button>
+        <button type="button" id="newChatBtn" class="ghost-btn">New chat</button>
+    </header>
+
+    <main id="messages" class="chat-scroll" role="log" aria-live="polite">
+        <div class="chat-column">
+            <section id="welcome" class="welcome">
+                <h1>Hi, I'm Bowen's AI portfolio copilot</h1>
+                <p class="welcome-sub">Ask about Bowen's background and projects, or try the SQL agent on a small sample database. Pick an example to copy it into the box, edit it if you like, then press Enter.</p>
+
+                <div class="example-group">
+                    <h2>About Bowen</h2>
+                    <div class="examples">
+                        <button type="button" class="example" data-prompt="What is Bowen's professional background?">What is Bowen's professional background?</button>
+                        <button type="button" class="example" data-prompt="Show me Bowen's projects and portfolio links.">Show me Bowen's projects and portfolio links.</button>
+                        <button type="button" class="example" data-prompt="How was this app built?">How was this app built?</button>
+                    </div>
+                </div>
+
+                <div class="example-group">
+                    <h2>Ask the database (sample data)</h2>
+                    <div class="examples">
+                        <button type="button" class="example" data-prompt="What tasks are pending?">What tasks are pending?</button>
+                        <button type="button" class="example" data-prompt="How much did I spend on groceries?">How much did I spend on groceries?</button>
+                        <button type="button" class="example" data-prompt="Which expense category had the highest total spending?">Which expense category had the highest total spending?</button>
+                    </div>
+                </div>
+            </section>
+            <div id="thread"></div>
         </div>
-    </div>
+    </main>
+
+    <footer class="composer">
+        <div class="composer-inner">
+            <div class="input-wrapper">
+                <textarea id="userInput" rows="1" maxlength="500" placeholder="Ask about Bowen, or try a question about the sample data..." aria-label="Message"></textarea>
+                <button type="button" id="sendBtn" class="send-btn" aria-label="Send message">
+                    <svg viewBox="0 0 24 24"><path d="M2 21l21-9L2 3v7l15 2-15 2z"/></svg>
+                </button>
+            </div>
+            <p class="hint">Enter to send · Shift+Enter for a new line · AI can make mistakes. Tasks and expenses are sample data.</p>
+        </div>
+    </footer>
 </div>
 <script src="/static/app.js"></script>
 </body>
