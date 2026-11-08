@@ -221,19 +221,14 @@
     </div>
     <script>
         document.addEventListener('DOMContentLoaded', () => {
-            console.log("LifeOps Copilot UI initialized successfully.");
             const input = document.getElementById('userInput');
             const messages = document.getElementById('messages');
             const sendBtn = document.getElementById('sendBtn');
 
-            if (!input || !sendBtn || !messages) {
-                console.error("Critical DOM elements missing!");
-                return;
-            }
+            if (!input || !sendBtn || !messages) return;
 
             async function sendMessage() {
                 const text = input.value.trim();
-                console.log("sendMessage called with text:", text);
                 if (!text) return;
 
                 messages.innerHTML += 
@@ -257,31 +252,40 @@
                 messages.scrollTop = messages.scrollHeight;
 
                 try {
-                    console.log("Initiating fetch to /chat...");
                     const res = await fetch('/chat', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ message: text })
                     });
-                    console.log("Response status:", res.status);
 
+                    const textData = await res.text();
                     const typingEl = document.getElementById(typingId);
                     if (typingEl) typingEl.remove();
 
-                    const data = await res.json();
+                    let displayResponse = "";
+                    if (textData.trim().startsWith('<')) {
+                        displayResponse = "Server error (Gateway / Service starting up). Please wait a moment and try again.";
+                    } else {
+                        try {
+                            const jsonData = JSON.parse(textData);
+                            displayResponse = jsonData.response || JSON.stringify(jsonData);
+                        } catch (parseErr) {
+                            displayResponse = textData;
+                        }
+                    }
+
                     messages.innerHTML += 
                         <div class="message-row assistant">
                             <div class="avatar">AI</div>
                             <div class="message-content"></div>
                         </div>;
                 } catch (err) {
-                    console.error("Fetch catch block error:", err);
                     const typingEl = document.getElementById(typingId);
                     if (typingEl) typingEl.remove();
                     messages.innerHTML += 
                         <div class="message-row assistant">
                             <div class="avatar">AI</div>
-                            <div class="message-content" style="color: #ef4444;">Error: </div>
+                            <div class="message-content" style="color: #ef4444;">Connection error: </div>
                         </div>;
                 }
                 messages.scrollTop = messages.scrollHeight;
@@ -291,16 +295,9 @@
                 return String(str).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
             }
 
-            sendBtn.addEventListener('click', () => {
-                console.log("Send button clicked.");
-                sendMessage();
-            });
-
+            sendBtn.addEventListener('click', sendMessage);
             input.addEventListener('keypress', function(e) {
-                if (e.key === 'Enter') {
-                    console.log("Enter key pressed.");
-                    sendMessage();
-                }
+                if (e.key === 'Enter') sendMessage();
             });
         });
     </script>
