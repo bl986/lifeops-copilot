@@ -2,6 +2,7 @@
 from pathlib import Path
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import HTMLResponse, JSONResponse, Response
+from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
@@ -15,6 +16,11 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+base_dir = Path(__file__).parent
+static_dir = base_dir / "static"
+if static_dir.exists():
+    app.mount("/static", StaticFiles(directory=str(static_dir)), name="static")
+
 class ChatRequest(BaseModel):
     message: str
 
@@ -24,7 +30,6 @@ def favicon():
 
 @app.get("/", response_class=HTMLResponse)
 def read_root():
-    base_dir = Path(__file__).parent
     paths_to_check = [
         base_dir / "index.html",
         base_dir.parent / "index.html",
