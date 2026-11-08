@@ -4,8 +4,6 @@ from fastapi import FastAPI, HTTPException
 from fastapi.responses import HTMLResponse, JSONResponse, Response
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
-from google import genai
-from backend.mcp_server import get_portfolio, query_database
 
 app = FastAPI(title="LifeOps OS Portfolio Agent", version="1.0")
 
@@ -45,9 +43,12 @@ def chat_with_agent(request: ChatRequest):
         if not api_key:
             return JSONResponse(
                 status_code=500,
-                content={"response": "Error: GEMINI_API_KEY environment variable not set on server."}
+                content={"response": "Error: GEMINI_API_KEY environment variable not set on Render."}
             )
             
+        from google import genai
+        from backend.mcp_server import get_portfolio, query_database
+        
         client = genai.Client(api_key=api_key)
         user_msg = request.message.lower()
         
@@ -80,7 +81,7 @@ def chat_with_agent(request: ChatRequest):
             "tool_context_used": context[:150] + "..."
         }
     except Exception as e:
-        print(f"Error in /chat: {str(e)}")
+        print(f"CRITICAL ERROR in /chat: {str(e)}")
         return JSONResponse(
             status_code=500,
             content={"response": f"Server Error: {str(e)}"}
