@@ -267,8 +267,7 @@
                         const parsed = JSON.parse(rawResponseText);
                         finalOutput = parsed.response || JSON.stringify(parsed);
                     } catch (e) {
-                        // If it's not valid JSON (like an HTML error page), show a snippet of what came back
-                        finalOutput = "Server returned non-JSON data: " + rawResponseText.substring(0, 150);
+                        finalOutput = "Server Error (Non-JSON): " + rawResponseText.substring(0, 150);
                     }
 
                     messages.innerHTML += 
@@ -282,7 +281,7 @@
                     messages.innerHTML += 
                         <div class="message-row assistant">
                             <div class="avatar">AI</div>
-                            <div class="message-content" style="color: #ef4444;">Fetch Error: </div>
+                            <div class="message-content" style="color: #ef4444;">Network Error: </div>
                         </div>;
                 }
                 messages.scrollTop = messages.scrollHeight;
