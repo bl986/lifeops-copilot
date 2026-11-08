@@ -53,7 +53,7 @@ def get_portfolio() -> str:
     """Return Bowen Lu's professional background: experience, certifications, education, projects and links."""
     init_db()
     _, _, rows = run_select("SELECT category, title, description, link FROM portfolio ORDER BY id")
-    lines = ["Bowen Lu, based in Canada."]
+    lines = ["Bowen, based in Canada."]
     for category, title, description, link in rows:
         line = f"- [{category}] {title}: {description}"
         if link:

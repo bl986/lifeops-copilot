@@ -62,3 +62,6 @@ def test_code_fences_are_stripped():
     assert mcp_server._strip_code_fences("```sql\nSELECT 1\n```") == "SELECT 1"
 
 test_text_matching_is_case_insensitive
+def test_portfolio_wording_is_accurate():
+    result = mcp_server.get_portfolio()
+    assert "Vertex AI" in result

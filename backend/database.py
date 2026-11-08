@@ -33,15 +33,22 @@ CREATE TABLE IF NOT EXISTS tasks (
 
 # Shown to the LLM so it can write correct SQL.
 SCHEMA_DESCRIPTION = """Tables:
-portfolio(id, category, title, description, link)  -- category is Experience, Certification, Education or Project
+portfolio(id, category, title, description, link)  -- category is Experience, Skills, Certification, Education or Project
 expenses(id, date, category, amount, description)  -- date is YYYY-MM-DD; sample data
 tasks(id, task, status, due_date)                  -- status is Pending, In Progress or Done; sample data"""
 
 # VERIFY every fact below before publishing.
 PORTFOLIO_SEED = [
-    ("Experience", "Cloud Support Engineer, Google Cloud",
-     "Customer-facing troubleshooting for Google Cloud data analytics products "
-     "(BigQuery, Cloud Composer/Airflow, Dataflow, Pub/Sub, GKE) and Gemini Enterprise.",
+    ("Experience", "Cloud Support Engineer, supporting Google Cloud Platform",
+     "Over 2 years of customer-facing troubleshooting across data analytics and AI/ML products.",
+     None),
+    ("Skills", "Core specialties: Data Analytics and AI ML products",
+     "Most experienced with BigQuery, Dataflow, Dataproc, DataFusion, Cloud Composer (Managed Airflow), "
+     "Pub/Sub and Looker.",
+     None),
+    ("Skills", "Broader AI/ML product experience",
+     "Also experienced with Vertex AI (Agent Platform), Dialogflow and CX Agent Studio, "
+     "Speech-to-Text, Text-to-Speech, Document AI, and with Gemini Enterprise & NotebookLM.",
      None),
     ("Certification", "Google Cloud Associate Cloud Engineer", "Google Cloud certification.", None),
     ("Certification", "Google Cloud Generative AI Leader", "Google Cloud certification.", None),
