@@ -258,20 +258,17 @@
                         body: JSON.stringify({ message: text })
                     });
 
-                    const textData = await res.text();
+                    const rawResponseText = await res.text();
                     const typingEl = document.getElementById(typingId);
                     if (typingEl) typingEl.remove();
 
-                    let displayResponse = "";
-                    if (textData.trim().startsWith('<')) {
-                        displayResponse = "Server error (Gateway / Service starting up). Please wait a moment and try again.";
-                    } else {
-                        try {
-                            const jsonData = JSON.parse(textData);
-                            displayResponse = jsonData.response || JSON.stringify(jsonData);
-                        } catch (parseErr) {
-                            displayResponse = textData;
-                        }
+                    let finalOutput = "";
+                    try {
+                        const parsed = JSON.parse(rawResponseText);
+                        finalOutput = parsed.response || JSON.stringify(parsed);
+                    } catch (e) {
+                        // If it's not valid JSON (like an HTML error page), show a snippet of what came back
+                        finalOutput = "Server returned non-JSON data: " + rawResponseText.substring(0, 150);
                     }
 
                     messages.innerHTML += 
@@ -285,7 +282,7 @@
                     messages.innerHTML += 
                         <div class="message-row assistant">
                             <div class="avatar">AI</div>
-                            <div class="message-content" style="color: #ef4444;">Connection error: </div>
+                            <div class="message-content" style="color: #ef4444;">Fetch Error: </div>
                         </div>;
                 }
                 messages.scrollTop = messages.scrollHeight;
