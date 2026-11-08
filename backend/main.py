@@ -1,5 +1,7 @@
-import os
+﻿import os
+from pathlib import Path
 from fastapi import FastAPI, HTTPException
+from fastapi.responses import HTMLResponse
 from pydantic import BaseModel
 from google import genai
 from backend.mcp_server import get_portfolio, query_database
@@ -9,9 +11,13 @@ app = FastAPI(title="LifeOps OS Portfolio Agent", version="1.0")
 class ChatRequest(BaseModel):
     message: str
 
-@app.get("/")
+@app.get("/", response_class=HTMLResponse)
 def read_root():
-    return {"status": "online", "message": "Welcome to LifeOps OS API. Use /chat to interact with the agent."}
+    # Resolve index.html relative to this main.py file location
+    html_path = Path(__file__).parent / "index.html"
+    if html_path.exists():
+        return html_path.read_text(encoding="utf-8")
+    return "<h1>LifeOps OS API running (index.html not found)</h1>"
 
 @app.post("/chat")
 def chat_with_agent(request: ChatRequest):
@@ -19,14 +25,12 @@ def chat_with_agent(request: ChatRequest):
         client = genai.Client(api_key=os.environ.get("GEMINI_API_KEY"))
         user_msg = request.message.lower()
         
-        # Simple intelligent router mapping user intents to your tools
         context = ""
         if "portfolio" in user_msg or "project" in user_msg or "experience" in user_msg or "wix" in user_msg or "github" in user_msg:
             context = get_portfolio()
         elif "expense" in user_msg or "task" in user_msg or "spend" in user_msg or "show" in user_msg:
             context = query_database(request.message)
         else:
-            # Default fallback: provide portfolio context + general assistance
             context = get_portfolio()
 
         prompt = f"""
@@ -47,7 +51,7 @@ def chat_with_agent(request: ChatRequest):
         return {
             "query": request.message,
             "response": response.text,
-            "tool_context_used": context[:150] + "..." # snippet of tool inspection
+            "tool_context_used": context[:150] + "..."
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
