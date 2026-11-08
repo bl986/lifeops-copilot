@@ -1,32 +1,82 @@
-﻿from backend.database import init_db, run_sql
+﻿"""Custom MCP server exposing portfolio and database tools.
 
-# Initialize the database on startup
-init_db()
+Run standalone (stdio transport):  python -m backend.mcp_server
+The FastAPI app also imports these functions directly.
+"""
+import os
+import re
+import sqlite3
 
+from mcp.server.fastmcp import FastMCP
+
+from backend.database import SCHEMA_DESCRIPTION, UnsafeSQLError, init_db, run_select
+
+mcp = FastMCP("LifeOps MCP Server")
+
+MODEL = os.environ.get("GEMINI_MODEL", "gemini-3.5-flash-lite")
+
+SQL_PROMPT = """You translate a question into ONE SQLite SELECT statement.
+
+{schema}
+
+Rules:
+- Return only the SQL. No explanation, no markdown.
+- Use only the tables and columns above.
+- Never write INSERT, UPDATE, DELETE, DROP or any statement that changes data.
+
+Question: {question}"""
+
+
+def _strip_code_fences(text: str) -> str:
+    text = text.strip()
+    text = re.sub(r"^```(?:sql)?\s*", "", text, flags=re.IGNORECASE)
+    text = re.sub(r"\s*```$", "", text)
+    return text.strip()
+
+
+def generate_sql(question: str) -> str:
+    """Ask Gemini to write SQL for the question (patched out in tests)."""
+    api_key = os.environ.get("GEMINI_API_KEY")
+    if not api_key:
+        raise RuntimeError("GEMINI_API_KEY is not set")
+    from google import genai
+
+    client = genai.Client(api_key=api_key)
+    prompt = SQL_PROMPT.format(schema=SCHEMA_DESCRIPTION, question=question)
+    response = client.models.generate_content(model=MODEL, contents=prompt)
+    return _strip_code_fences(response.text)
+
+
+@mcp.tool()
 def get_portfolio() -> str:
-    """Returns Bowen's professional portfolio and career background."""
-    return """
-    Bowen Lu is a Cloud Support Engineer and Technical Support expert based in Canada.
-    - Experience: 2+ years as a GCP Technical Support Representative, specializing in Data Analytics shards (BigQuery, Cloud Composer, Airflow, GKE, Dataflow, Pub/Sub), alongside emerging expertise in Gemini Enterprise & AI/ML troubleshooting.
-    - Certifications: Google Cloud Associate Cloud Engineer, Gen AI Lead certification.
-    - Education: Carleton University (2017-2024).
-    - Portfolio Sites: 
-      - GitHub Portfolio: https://bl986.github.io/portfolio2/
-      - Wix Portfolio: https://bowenlu6688.wixsite.com/my-site
-    - Current Active Projects: LifeOps OS AI Portfolio Copilot, preparing for the local Class 5 driver's license test.
-    """
+    """Return Bowen Lu's professional background: experience, certifications, education, projects and links."""
+    init_db()
+    _, _, rows = run_select("SELECT category, title, description, link FROM portfolio ORDER BY id")
+    lines = ["Bowen Lu, based in Canada."]
+    for category, title, description, link in rows:
+        line = f"- [{category}] {title}: {description}"
+        if link:
+            line += f" ({link})"
+        lines.append(line)
+    return "\n".join(lines)
 
-def query_database(natural_query: str) -> str:
-    """
-    Simulates AI-driven SQL query generation and execution against the local SQLite database.
-    """
-    query_lower = natural_query.lower()
-    
-    sql = ""
-    if "project" in query_lower:
-        sql = "SELECT * FROM projects;"
-    else:
-        sql = "SELECT name, tech FROM projects;"
-        
-    results = run_sql(sql)
-    return f"Executed SQL: `{sql}`\nDatabase Results: {results}"
+
+@mcp.tool()
+def query_database(natural_language_query: str) -> str:
+    """Answer a question about the portfolio, expenses or tasks tables by generating and running a safe, read-only SQL query."""
+    init_db()
+    try:
+        sql = generate_sql(natural_language_query[:500])
+        safe_sql, columns, rows = run_select(sql)
+    except UnsafeSQLError as e:
+        return f"Query rejected by safety check: {e}"
+    except sqlite3.Error as e:
+        return f"The generated query could not be run: {e}"
+    except Exception as e:  # API errors, missing key, etc.
+        print(f"query_database error: {e}")
+        return "Could not generate a query right now."
+    return f"SQL: {safe_sql}\nColumns: {columns}\nRows: {rows}"
+
+
+if __name__ == "__main__":
+    mcp.run()

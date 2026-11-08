@@ -16,8 +16,8 @@ class AgentHarness:
             output_text = agent_logic()
             
             # Simple guardrail check: Ensure response is not empty
-            if not output_text or len(output_text.strip()) == 0:
-                output_text = "Error: Agent generated an empty response."
+            if not output_text or not output_text.strip():
+                raise ValueError("Agent generated an empty response.")
                 
             duration = round(time.time() - start_time, 3)
             print(f"[Harness: {self.agent_name}] Success in {duration}s")
