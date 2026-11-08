@@ -23,6 +23,7 @@ Rules:
 - Return only the SQL. No explanation, no markdown.
 - Use only the tables and columns above.
 - Never write INSERT, UPDATE, DELETE, DROP or any statement that changes data.
+- Compare text case-insensitively.
 
 Question: {question}"""
 

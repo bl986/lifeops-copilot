@@ -11,7 +11,7 @@ MAX_ROWS = 50
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS portfolio (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
-    category TEXT NOT NULL,
+    category TEXT NOT NULL COLLATE NOCASE,
     title TEXT NOT NULL,
     description TEXT,
     link TEXT
@@ -19,14 +19,14 @@ CREATE TABLE IF NOT EXISTS portfolio (
 CREATE TABLE IF NOT EXISTS expenses (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     date TEXT NOT NULL,
-    category TEXT NOT NULL,
+    category TEXT NOT NULL COLLATE NOCASE,
     amount REAL NOT NULL,
     description TEXT
 );
 CREATE TABLE IF NOT EXISTS tasks (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     task TEXT NOT NULL,
-    status TEXT NOT NULL,
+    status TEXT NOT NULL COLLATE NOCASE,
     due_date TEXT
 );
 """

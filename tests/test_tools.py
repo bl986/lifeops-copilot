@@ -60,3 +60,5 @@ def test_query_database_blocks_malicious_generated_sql(monkeypatch):
 
 def test_code_fences_are_stripped():
     assert mcp_server._strip_code_fences("```sql\nSELECT 1\n```") == "SELECT 1"
+
+test_text_matching_is_case_insensitive
