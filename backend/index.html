@@ -174,7 +174,7 @@
             cursor: pointer;
             transition: background 0.2s, transform 0.1s;
         }
-    .send-btn:hover {
+        .send-btn:hover {
             background: #ffffff;
             transform: scale(1.05);
         }
@@ -220,81 +220,88 @@
         </div>
     </div>
     <script>
-        const input = document.getElementById('userInput');
-        const messages = document.getElementById('messages');
-        const sendBtn = document.getElementById('sendBtn');
+        document.addEventListener('DOMContentLoaded', () => {
+            console.log("LifeOps Copilot UI initialized successfully.");
+            const input = document.getElementById('userInput');
+            const messages = document.getElementById('messages');
+            const sendBtn = document.getElementById('sendBtn');
 
-        async function sendMessage() {
-            const text = input.value.trim();
-            if (!text) return;
+            if (!input || !sendBtn || !messages) {
+                console.error("Critical DOM elements missing!");
+                return;
+            }
 
-            messages.innerHTML += 
-                <div class="message-row user">
-                    <div class="avatar">U</div>
-                    <div class="message-content"></div>
-                </div>;
-            input.value = '';
-            messages.scrollTop = messages.scrollHeight;
-
-            const typingId = 'typing-' + Date.now();
-            messages.innerHTML += 
-                <div class="message-row assistant" id="">
-                    <div class="avatar">AI</div>
-                    <div class="message-content" style="display: flex; align-items: center; gap: 4px;">
-                        <div class="typing-dot"></div>
-                        <div class="typing-dot"></div>
-                        <div class="typing-dot"></div>
-                    </div>
-                </div>;
-            messages.scrollTop = messages.scrollHeight;
-
-            try {
-                const res = await fetch('/chat', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ message: text })
-                });
-
-                const rawText = await res.text();
-                const typingEl = document.getElementById(typingId);
-                if (typingEl) typingEl.remove();
-
-                let responseMsg = "Received empty response from server.";
-                if (rawText.trim().startsWith('<')) {
-                    responseMsg = "Server error: Received HTML error response instead of JSON.";
-                } else {
-                    try {
-                        const data = JSON.parse(rawText);
-                        responseMsg = data.response || JSON.stringify(data);
-                    } catch (parseErr) {
-                        responseMsg = rawText;
-                    }
-                }
+            async function sendMessage() {
+                const text = input.value.trim();
+                console.log("sendMessage called with text:", text);
+                if (!text) return;
 
                 messages.innerHTML += 
-                    <div class="message-row assistant">
-                        <div class="avatar">AI</div>
+                    <div class="message-row user">
+                        <div class="avatar">U</div>
                         <div class="message-content"></div>
                     </div>;
-            } catch (err) {
-                const typingEl = document.getElementById(typingId);
-                if (typingEl) typingEl.remove();
+                input.value = '';
+                messages.scrollTop = messages.scrollHeight;
+
+                const typingId = 'typing-' + Date.now();
                 messages.innerHTML += 
-                    <div class="message-row assistant">
+                    <div class="message-row assistant" id="">
                         <div class="avatar">AI</div>
-                        <div class="message-content" style="color: #ef4444;">Error connecting to agent server.</div>
+                        <div class="message-content" style="display: flex; align-items: center; gap: 4px;">
+                            <div class="typing-dot"></div>
+                            <div class="typing-dot"></div>
+                            <div class="typing-dot"></div>
+                        </div>
                     </div>;
+                messages.scrollTop = messages.scrollHeight;
+
+                try {
+                    console.log("Initiating fetch to /chat...");
+                    const res = await fetch('/chat', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ message: text })
+                    });
+                    console.log("Response status:", res.status);
+
+                    const typingEl = document.getElementById(typingId);
+                    if (typingEl) typingEl.remove();
+
+                    const data = await res.json();
+                    messages.innerHTML += 
+                        <div class="message-row assistant">
+                            <div class="avatar">AI</div>
+                            <div class="message-content"></div>
+                        </div>;
+                } catch (err) {
+                    console.error("Fetch catch block error:", err);
+                    const typingEl = document.getElementById(typingId);
+                    if (typingEl) typingEl.remove();
+                    messages.innerHTML += 
+                        <div class="message-row assistant">
+                            <div class="avatar">AI</div>
+                            <div class="message-content" style="color: #ef4444;">Error: </div>
+                        </div>;
+                }
+                messages.scrollTop = messages.scrollHeight;
             }
-            messages.scrollTop = messages.scrollHeight;
-        }
 
-        function escapeHtml(str) {
-            return String(str).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
-        }
+            function escapeHtml(str) {
+                return String(str).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+            }
 
-        sendBtn.addEventListener('click', sendMessage);
-        input.addEventListener('keypress', function(e) {
-            if (e.key === 'Enter') sendMessage();
+            sendBtn.addEventListener('click', () => {
+                console.log("Send button clicked.");
+                sendMessage();
+            });
+
+            input.addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    console.log("Enter key pressed.");
+                    sendMessage();
+                }
+            });
         });
     </script>
 </body>
