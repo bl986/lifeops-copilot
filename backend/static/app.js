@@ -47,10 +47,10 @@
                 try {
                     const data = JSON.parse(rawText);
                     const markdownText = data.response || JSON.stringify(data);
-                    // Parse markdown to HTML using marked.js
                     htmlOutput = marked.parse(markdownText);
                 } catch (err) {
-                    htmlOutput = "<p>Parsing error: " + escapeHtml(rawText.substring(0, 150)) + "</p>";
+                    // Fallback if JSON is truncated: try to display raw text safely
+                    htmlOutput = marked.parse(rawText);
                 }
             }
 

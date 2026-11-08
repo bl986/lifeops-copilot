@@ -52,6 +52,7 @@ def chat_with_agent(request: ChatRequest):
             )
             
         from google import genai
+        from google.genai import types
         from backend.mcp_server import get_portfolio, query_database
         
         client = genai.Client(api_key=api_key)
@@ -72,12 +73,16 @@ def chat_with_agent(request: ChatRequest):
         
         User Query: "{request.message}"
         
-        Provide a concise, professional, and engaging response to the hiring manager or visitor. Highlight technical competence and career background naturally.
+        Provide a concise, professional, and engaging response to the hiring manager or visitor. Highlight technical competence and career background naturally. Use markdown bolding (**text**) and markdown links ([Anchor Text](URL)) where appropriate.
         """
         
         response = client.models.generate_content(
             model="gemini-3.5-flash-lite",
-            contents=prompt
+            contents=prompt,
+            config=types.GenerateContentConfig(
+                max_output_tokens=1500,
+                temperature=0.7
+            )
         )
         
         return {
