@@ -9,7 +9,7 @@
         .chat-container { width: 100%; max-width: 600px; background: #1e293b; border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.3); display: flex; flex-direction: column; overflow: hidden; height: 80vh; }
         .chat-header { background: #334155; padding: 20px; font-weight: 600; font-size: 1.1rem; border-bottom: 1px solid #475569; }
         .chat-messages { flex: 1; padding: 20px; overflow-y: auto; display: flex; flex-direction: column; gap: 15px; }
-        .message { padding: 12px 16px; border-radius: 8px; max-width: 80%; line-height: 1.5; }
+        .message { padding: 12px 16px; border-radius: 8px; max-width: 80%; line-height: 1.5; word-break: break-word; }
         .user { background: #3b82f6; align-self: flex-end; color: white; }
         .assistant { background: #334155; align-self: flex-start; color: #e2e8f0; border: 1px solid #475569; }
         .chat-input { display: flex; padding: 15px; background: #1e293b; border-top: 1px solid #475569; }
@@ -26,7 +26,7 @@
         </div>
         <div class="chat-input">
             <input type="text" id="userInput" placeholder="Ask about my background, projects, or tasks..." onkeypress="handleKeyPress(event)">
-            <button onclick="sendMessage()">Send</button>
+            <button id="sendBtn">Send</button>
         </div>
     </div>
     <script>
@@ -36,7 +36,7 @@
             const text = input.value.trim();
             if (!text) return;
 
-            messages.innerHTML += <div class="message user"></div>;
+            messages.innerHTML += <div class="message user">\</div>;
             input.value = '';
             messages.scrollTop = messages.scrollHeight;
 
@@ -47,13 +47,18 @@
                     body: JSON.stringify({ message: text })
                 });
                 const data = await res.json();
-                messages.innerHTML += <div class="message assistant"></div>;
+                messages.innerHTML += <div class="message assistant">\</div>;
             } catch (err) {
                 messages.innerHTML += <div class="message assistant" style="color: #ef4444;">Error connecting to agent server.</div>;
             }
             messages.scrollTop = messages.scrollHeight;
         }
-        function handleKeyPress(e) { if (e.key === 'Enter') sendMessage(); }
+
+        function handleKeyPress(e) {
+            if (e.key === 'Enter') sendMessage();
+        }
+
+        document.getElementById('sendBtn').addEventListener('click', sendMessage);
     </script>
 </body>
 </html>
