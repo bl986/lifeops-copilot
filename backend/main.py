@@ -1,7 +1,7 @@
 ﻿import os
 from pathlib import Path
 from fastapi import FastAPI, HTTPException
-from fastapi.responses import HTMLResponse, JSONResponse
+from fastapi.responses import HTMLResponse, JSONResponse, Response
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from google import genai
@@ -19,6 +19,10 @@ app.add_middleware(
 
 class ChatRequest(BaseModel):
     message: str
+
+@app.get("/favicon.ico", include_in_schema=False)
+def favicon():
+    return Response(status_code=204)
 
 @app.get("/", response_class=HTMLResponse)
 def read_root():
