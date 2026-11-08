@@ -9,24 +9,24 @@
         const text = input.value.trim();
         if (!text) return;
 
-        messages.innerHTML += 
+        messages.innerHTML += `
             <div class="message-row user">
                 <div class="avatar">U</div>
-                <div class="message-content">\</div>
-            </div>;
+                <div class="message-content">${escapeHtml(text)}</div>
+            </div>`;
         input.value = '';
         messages.scrollTop = messages.scrollHeight;
 
         const typingId = 'typing-' + Date.now();
-        messages.innerHTML += 
-            <div class="message-row assistant" id="\">
+        messages.innerHTML += `
+            <div class="message-row assistant" id="${typingId}">
                 <div class="avatar">AI</div>
                 <div class="message-content" style="display: flex; align-items: center; gap: 4px;">
                     <div class="typing-dot"></div>
                     <div class="typing-dot"></div>
                     <div class="typing-dot"></div>
                 </div>
-            </div>;
+            </div>`;
         messages.scrollTop = messages.scrollHeight;
 
         try {
@@ -52,19 +52,19 @@
                 }
             }
 
-            messages.innerHTML += 
+            messages.innerHTML += `
                 <div class="message-row assistant">
                     <div class="avatar">AI</div>
-                    <div class="message-content">\</div>
-                </div>;
+                    <div class="message-content">${escapeHtml(displayText)}</div>
+                </div>`;
         } catch (err) {
             const typingEl = document.getElementById(typingId);
             if (typingEl) typingEl.remove();
-            messages.innerHTML += 
+            messages.innerHTML += `
                 <div class="message-row assistant">
                     <div class="avatar">AI</div>
-                    <div class="message-content" style="color: #ef4444;">Network Error: \</div>
-                </div>;
+                    <div class="message-content" style="color: #ef4444;">Network Error: ${escapeHtml(err.message)}</div>
+                </div>`;
         }
         messages.scrollTop = messages.scrollHeight;
     }
