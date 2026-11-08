@@ -5,15 +5,14 @@
 
     if (!input || !sendBtn || !messages) return;
 
-    // Built-in markdown parser fallback in case CDN fails
     function parseMarkdown(text) {
         if (typeof marked !== 'undefined' && typeof marked.parse === 'function') {
             return marked.parse(text);
         }
-        // Fallback markdown converter
+        // Fallback markdown converter with strict link matching
         let html = escapeHtml(text);
-        // Convert links: [text](url) -> <a href="url" target="_blank">text</a>
-        html = html.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank">$1</a>');
+        // Only convert actual markdown links: [Text](http...)
+        html = html.replace(/\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g, '<a href="$2" target="_blank">$1</a>');
         // Convert bold: **text** -> <strong>text</strong>
         html = html.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
         // Convert newlines to breaks
@@ -88,9 +87,7 @@
 
     function escapeHtml(str) {
         return String(str)
-            .replace(/&/g, "&amp;")
-            .replace(/</g, "&lt;")
-            .replace(/>/g, "&gt;");
+            .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
     }
 
     sendBtn.addEventListener('click', sendMessage);

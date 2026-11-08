@@ -73,7 +73,11 @@ def chat_with_agent(request: ChatRequest):
         
         User Query: "{request.message}"
         
-        Provide a concise, professional, and engaging response to the hiring manager or visitor. Highlight technical competence and career background naturally. Use markdown bolding (**text**) and markdown links ([Anchor Text](URL)) where appropriate.
+        Provide a concise, professional, and engaging response to the hiring manager or visitor. Highlight technical competence and career background naturally.
+        
+        CRITICAL FORMATTING RULES:
+        1. Use markdown bolding (**text**) for job titles, certifications, and key skills (e.g., **GCP Technical Support Representative**, **Google Cloud Associate Cloud Engineer**). NEVER turn job titles or certifications into hyperlinks.
+        2. ONLY use markdown links for actual external portfolio URLs, such as GitHub or Wix portfolios (e.g., [GitHub Portfolio](https://bl986.github.io/portfolio2/) or [Wix Portfolio](https://bowenlu688.wixsite.com/my-site)). Do not link random product names or job titles.
         """
         
         response = client.models.generate_content(
