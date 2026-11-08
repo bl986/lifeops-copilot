@@ -1,45 +1,34 @@
-﻿import sqlite3
-import os
-from mcp.server.fastmcp import FastMCP
-from google import genai
+﻿from backend.database import init_db, run_sql
 
-mcp = FastMCP("LifeOps MCP Server")
-DB_PATH = os.path.join(os.path.dirname(__file__), "../data/lifeops.db")
+# Initialize the database on startup
+init_db()
 
-@mcp.tool()
-def query_database(natural_language_query: str) -> str:
-    """Translates a natural language question into a SQLite SQL query and returns the results."""
-    client = genai.Client(api_key=os.environ.get("GEMINI_API_KEY"))
-    schema_info = "Tables: portfolio(id, category, title, description, link), expenses(id, date, category, amount, description), tasks(id, task, status, due_date)"
-    
-    prompt = f"Given SQLite schema:\n{schema_info}\nWrite a valid SQLite SELECT query to answer: \"{natural_language_query}\". Return ONLY raw SQL without markdown blocks."
-    
-    response = client.models.generate_content(model="gemini-3.8-flash", contents=prompt)
-    sql_query = response.text.replace("`sql", "").replace("`", "").strip()
-    
-    try:
-        conn = sqlite3.connect(DB_PATH)
-        cursor = conn.cursor()
-        cursor.execute(sql_query)
-        rows = cursor.fetchall()
-        conn.close()
-        return f"SQL: {sql_query}\nResults: {rows}"
-    except Exception as e:
-        return f"Error executing SQL ({sql_query}): {str(e)}"
-
-@mcp.tool()
 def get_portfolio() -> str:
-    """Retrieves professional history, projects, and certifications."""
-    conn = sqlite3.connect(DB_PATH)
-    cursor = conn.cursor()
-    cursor.execute("SELECT category, title, description, link FROM portfolio")
-    rows = cursor.fetchall()
-    conn.close()
-    
-    result = "### Professional Portfolio & Experience\n"
-    for row in rows:
-        result += f"- **[{row[0]}] {row[1]}**: {row[2]} ([Link]({row[3]}))\n"
-    return result
+    """Returns Bowen's professional portfolio and career background."""
+    return """
+    Bowen Lu is a Cloud Support Engineer and Technical Support expert based in Quebec, Canada.
+    - Experience: 2+ years as a GCP Technical Support Representative, specializing in Data Analytics shards (BigQuery, Cloud Composer, Airflow, GKE, Dataflow, Pub/Sub) and transitioning into Gemini Enterprise & AI/ML troubleshooting.
+    - Certifications: Google Cloud Associate Cloud Engineer, Gen AI Lead certification.
+    - Education: Carleton University (2017-2024).
+    - Portfolio Sites: 
+      - GitHub Portfolio: https://bl986.github.io/portfolio2/
+      - Wix Portfolio: https://bowenlu688.wixsite.com/my-site
+    - Current Active Projects: LifeOps OS AI Portfolio Copilot, preparing for the Quebec SAAQ Class 5 driver's license test.
+    """
 
-if __name__ == "__main__":
-    mcp.run()
+def query_database(natural_query: str) -> str:
+    """
+    Simulates AI-driven SQL query generation and execution against the local SQLite database.
+    """
+    query_lower = natural_query.lower()
+    
+    # In a full agentic setup, Gemini can write the SQL directly. 
+    # Here, we map natural language to structured SQL queries executed on our sqlite database:
+    sql = ""
+    if "project" in query_lower:
+        sql = "SELECT * FROM projects;"
+    else:
+        sql = "SELECT name, tech FROM projects;"
+        
+    results = run_sql(sql)
+    return f"Executed SQL: `{sql}`\nDatabase Results: {results}"
