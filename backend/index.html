@@ -1,37 +1,74 @@
 ﻿<!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>LifeOps OS | AI Portfolio Copilot</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="/static/style.css">
-    <!-- Include Marked.js for Markdown parsing -->
-    <script src="https://cdn.jsdelivr.net/npm/marked/marked.js"></script>
+<meta charset="UTF-8">
+<title>LifeOps Copilot</title>
+<style>
+    body { font-family: sans-serif; margin: 0; padding: 20px; background: #0f172a; color: #f8fafc; display: flex; flex-direction: column; height: 100vh; box-sizing: border-box; }
+    .chat-container { flex: 1; display: flex; flex-direction: column; max-width: 800px; width: 100%; margin: 0 auto; background: #1e293b; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 6px rgba(0,0,0,0.3); }
+    .chat-messages { flex: 1; padding: 20px; overflow-y: auto; display: flex; flex-direction: column; gap: 12px; }
+    .input-area { padding: 16px; background: #334155; display: flex; flex-direction: column; gap: 8px; }
+    .suggestion-bar { display: flex; gap: 8px; flex-wrap: wrap; }
+    .prompt-chip { background: #475569; border: none; color: #fff; padding: 6px 12px; border-radius: 16px; cursor: pointer; font-size: 13px; transition: background 0.2s; }
+    .prompt-chip:hover { background: #64748b; }
+    .input-row { display: flex; gap: 8px; }
+    textarea { flex: 1; background: #1e293b; border: 1px solid #475569; color: #fff; padding: 10px; border-radius: 8px; resize: none; height: 40px; font-family: inherit; }
+    button.send-btn { background: #3b82f6; color: white; border: none; padding: 0 20px; border-radius: 8px; cursor: pointer; font-weight: bold; }
+    button.send-btn:hover { background: #2563eb; }
+</style>
 </head>
 <body>
-    <div class="chat-container">
-        <div class="chat-header">
-            <div class="status-dot"></div>
-            <span>LifeOps OS — AI Portfolio Copilot</span>
+<div class="chat-container">
+    <div id="chat-messages" class="chat-messages"></div>
+    <div class="input-area">
+        <div class="suggestion-bar">
+            <button type="button" class="prompt-chip" onclick="setPrompt('Show my calendar events for today')">📅 Today's Calendar</button>
+            <button type="button" class="prompt-chip" onclick="setPrompt('Check BigQuery job performance')">⚡ BigQuery Optimization</button>
+            <button type="button" class="prompt-chip" onclick="setPrompt('Review recent GitHub commits')">💻 Git Status</button>
         </div>
-        <div class="chat-messages" id="messages">
-            <div class="message-row assistant">
-                <div class="avatar">AI</div>
-                <div class="message-content">Hello! I'm Bowen's AI portfolio copilot. Ask me about professional experience, GCP projects, or system tasks.</div>
-            </div>
-        </div>
-        <div class="chat-input-area">
-            <div class="input-wrapper">
-                <input type="text" id="userInput" placeholder="Ask about my background, projects, or tasks...">
-                <button class="send-btn" id="sendBtn" title="Send message">
-                    <svg viewBox="0 0 24 24"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"></path></svg>
-                </button>
-            </div>
+        <div class="input-row">
+            <textarea id="chat-input" placeholder="Type a message... (Shift + Enter for new line)"></textarea>
+            <button type="button" class="send-btn" onclick="sendMessage()">Send</button>
         </div>
     </div>
-    <script src="/static/app.js"></script>
+</div>
+
+<script>
+    const chatInput = document.getElementById('chat-input');
+    const chatMessages = document.getElementById('chat-messages');
+
+    // Shift + Enter handling
+    chatInput.addEventListener('keydown', function(e) {
+        if (e.key === 'Enter') {
+            if (e.shiftKey) {
+                return; // Allow new line
+            } else {
+                e.preventDefault();
+                sendMessage();
+            }
+        }
+    });
+
+    function setPrompt(text) {
+        chatInput.value = text;
+        chatInput.focus();
+    }
+
+    function sendMessage() {
+        const text = chatInput.value.trim();
+        if (!text) return;
+        
+        const msgDiv = document.createElement('div');
+        msgDiv.style.background = '#3b82f6';
+        msgDiv.style.padding = '10px 14px';
+        msgDiv.style.borderRadius = '8px';
+        msgDiv.style.alignSelf = 'flex-end';
+        msgDiv.textContent = text;
+        chatMessages.appendChild(msgDiv);
+        
+        chatInput.value = '';
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+    }
+</script>
 </body>
 </html>
