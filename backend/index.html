@@ -258,16 +258,17 @@
                         body: JSON.stringify({ message: text })
                     });
 
-                    const rawResponseText = await res.text();
+                    // ALWAYS read as plain text first to prevent JSON.parse crashes on HTML error pages
+                    const rawText = await res.text();
                     const typingEl = document.getElementById(typingId);
                     if (typingEl) typingEl.remove();
 
-                    let finalOutput = "";
+                    let displayText = "";
                     try {
-                        const parsed = JSON.parse(rawResponseText);
-                        finalOutput = parsed.response || JSON.stringify(parsed);
-                    } catch (e) {
-                        finalOutput = "Server Error (Non-JSON): " + rawResponseText.substring(0, 150);
+                        const data = JSON.parse(rawText);
+                        displayText = data.response || JSON.stringify(data);
+                    } catch (jsonErr) {
+                        displayText = "Server returned non-JSON output: " + rawText.substring(0, 150);
                     }
 
                     messages.innerHTML += 
