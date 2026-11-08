@@ -12,7 +12,7 @@
         // Fallback markdown converter with strict link matching
         let html = escapeHtml(text);
         // Only convert actual markdown links: [Text](http...)
-        html = html.replace(/\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g, '<a href="$2" target="_blank">$1</a>');
+        html = html.replace(/\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>');
         // Convert bold: **text** -> <strong>text</strong>
         html = html.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
         // Convert newlines to breaks
@@ -87,7 +87,8 @@
 
     function escapeHtml(str) {
         return String(str)
-            .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+            .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+            .replace(/"/g, "&quot;").replace(/'/g, "&#39;");
     }
 
     sendBtn.addEventListener('click', sendMessage);
