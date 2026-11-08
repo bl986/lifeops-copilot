@@ -1,7 +1,7 @@
 ﻿import os
 from pathlib import Path
 from fastapi import FastAPI, HTTPException
-from fastapi.responses import HTMLResponse
+from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from google import genai
@@ -39,7 +39,10 @@ def chat_with_agent(request: ChatRequest):
     try:
         api_key = os.environ.get("GEMINI_API_KEY")
         if not api_key:
-            raise HTTPException(status_code=500, detail="GEMINI_API_KEY environment variable not set on server.")
+            return JSONResponse(
+                status_code=500,
+                content={"response": "Error: GEMINI_API_KEY environment variable not set on server."}
+            )
             
         client = genai.Client(api_key=api_key)
         user_msg = request.message.lower()
@@ -53,7 +56,7 @@ def chat_with_agent(request: ChatRequest):
             context = get_portfolio()
 
         prompt = f"""
-        You are the AI portfolio copilot for a Cloud Solution Engineer / Technical Support expert.
+        You are the AI portfolio copilot for a Cloud Support Engineer and Technical Support expert.
         Here is the retrieved data from the user's system based on their query:
         {context}
         
@@ -74,7 +77,10 @@ def chat_with_agent(request: ChatRequest):
         }
     except Exception as e:
         print(f"Error in /chat: {str(e)}")
-        raise HTTPException(status_code=500, detail=str(e))
+        return JSONResponse(
+            status_code=500,
+            content={"response": f"Server Error: {str(e)}"}
+        )
 
 if __name__ == "__main__":
     import uvicorn
