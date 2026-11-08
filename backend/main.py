@@ -1,8 +1,8 @@
-﻿import os
+import os
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 from google import genai
-from mcp_server import get_portfolio, query_database
+from backend.mcp_server import get_portfolio, query_database
 
 app = FastAPI(title="LifeOps OS Portfolio Agent", version="1.0")
 
