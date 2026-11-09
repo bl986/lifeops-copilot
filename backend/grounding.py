@@ -61,4 +61,8 @@ def ask_google(question: str) -> dict:
         return {"text": "Google Search grounding has reached its hourly demo limit. Please try again later.",
                 "sources": []}
     response = _generate(question[:500])
+    try:
+        print("GROUNDING DEBUG:", response.candidates[0].grounding_metadata)
+    except Exception as e:
+        print("GROUNDING DEBUG: no metadata:", e)
     return {"text": (response.text or "").strip(), "sources": extract_sources(response)}
