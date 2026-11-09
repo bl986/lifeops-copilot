@@ -52,7 +52,7 @@ PORTFOLIO_SEED = [
      None),
     ("Certification", "Google Cloud Associate Cloud Engineer", "Google Cloud certification.", None),
     ("Certification", "Google Cloud Generative AI Leader", "Google Cloud certification.", None),
-    ("Education", "Carleton University", "2017-2024.", None),
+    ("Education", "Carleton University", "2017-2021.", None),
     ("Project", "Portfolio Site V1 (Wix)", "Early web portfolio built with Wix.",
      "https://bowenlu6688.wixsite.com/my-site"),
     ("Project", "Portfolio Site V2 (GitHub Pages)", "Static portfolio hosted on GitHub Pages.",
