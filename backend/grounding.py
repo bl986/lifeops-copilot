@@ -3,7 +3,7 @@ import os
 
 from backend.ratelimit import RateLimiter
 
-MODEL = os.environ.get("GROUNDING_MODEL", os.environ.get("GEMINI_MODEL", "gemini-3.5-flash-lite"))
+MODEL = os.environ.get("GROUNDING_MODEL", "gemini-2.5-flash")
 MAX_SOURCES = 5
 INSTRUCTION = (
     "Answer the question using Google Search results. Be accurate and concise (under 200 words). "
