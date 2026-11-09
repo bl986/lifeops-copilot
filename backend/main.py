@@ -7,7 +7,7 @@ from fastapi.responses import FileResponse, JSONResponse, Response
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
-from backend import agent
+from backend import agent, connectors
 from backend.ratelimit import RateLimiter
 
 app = FastAPI(title="LifeOps OS Portfolio Agent", version="2.1")
@@ -24,6 +24,7 @@ global_limiter = RateLimiter(int(os.environ.get("RATE_LIMIT_GLOBAL_PER_HOUR", "3
 
 class ChatRequest(BaseModel):
     message: str = Field(min_length=1, max_length=500)
+    connectors: list[str] | None = Field(default=None, max_length=10)
 
 
 def client_key(http_request: Request) -> str:
@@ -57,6 +58,11 @@ def health():
     return {"status": "ok", "python": sys.version.split()[0], "model": agent.MODEL}
 
 
+@app.get("/connectors")
+def list_connectors():
+    return {"connectors": connectors.CONNECTORS}
+
+
 @app.post("/chat")
 def chat(request: ChatRequest, http_request: Request):
     wait = ip_limiter.check(client_key(http_request))
@@ -66,6 +72,6 @@ def chat(request: ChatRequest, http_request: Request):
     if wait:
         return too_many(wait, "The demo has hit its hourly usage cap. Please try again later.")
 
-    result = agent.run_agent(request.message)
+    result = agent.run_agent(request.message, request.connectors)
     status_code = 200 if result["status"] == "success" else 503
     return JSONResponse(status_code=status_code, content=result)

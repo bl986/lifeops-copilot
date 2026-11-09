@@ -278,3 +278,74 @@ body {
 }
 .followup:hover { background: #28292c; border-color: #3b82f6; }
 .followup:focus-visible { outline: 2px solid #3b82f6; outline-offset: 2px; }
+.topbar-actions { display: flex; align-items: center; gap: 8px; }
+.connector-menu { position: relative; }
+.badge {
+    display: inline-block;
+    min-width: 18px;
+    padding: 0 6px;
+    margin-left: 4px;
+    border-radius: 9px;
+    background: #2b313b;
+    color: #38bdf8;
+    font-size: 0.75rem;
+    line-height: 18px;
+    text-align: center;
+}
+.connector-panel {
+    position: absolute;
+    right: 0;
+    top: calc(100% + 8px);
+    width: min(360px, calc(100vw - 28px));
+    background: #1e1f20;
+    border: 1px solid #3f4044;
+    border-radius: 14px;
+    padding: 16px;
+    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.5);
+    z-index: 20;
+}
+.connector-panel h2 { font-size: 0.95rem; color: #f1f1f1; margin-bottom: 4px; }
+.connector-sub { font-size: 0.8rem; color: #8e9196; line-height: 1.45; margin-bottom: 12px; }
+.connector-row {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 14px;
+    padding: 10px 0;
+    border-top: 1px solid #2d2e30;
+    cursor: pointer;
+}
+.connector-text { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.connector-name { font-size: 0.9rem; color: #f1f1f1; font-weight: 500; }
+.connector-desc { font-size: 0.78rem; color: #8e9196; line-height: 1.4; }
+.switch {
+    appearance: none;
+    -webkit-appearance: none;
+    flex-shrink: 0;
+    width: 38px;
+    height: 22px;
+    margin-top: 2px;
+    border: none;
+    border-radius: 11px;
+    background: #3f4044;
+    position: relative;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+.switch::after {
+    content: "";
+    position: absolute;
+    top: 3px;
+    left: 3px;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: #fff;
+    transition: transform 0.2s;
+}
+.switch:checked { background: #3b82f6; }
+.switch:checked::after { transform: translateX(16px); }
+.switch:focus-visible { outline: 2px solid #3b82f6; outline-offset: 2px; }
+.sources { margin-top: 10px; font-size: 0.8rem; color: #8e9196; }
+.sources a { color: #38bdf8; text-decoration: none; }
+.sources a:hover { text-decoration: underline; }

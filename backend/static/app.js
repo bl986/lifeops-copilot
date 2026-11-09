@@ -5,10 +5,17 @@
     const welcome = document.getElementById('welcome');
     const sendBtn = document.getElementById('sendBtn');
     const newChatBtn = document.getElementById('newChatBtn');
+    const connectorBtn = document.getElementById('connectorBtn');
+    const connectorPanel = document.getElementById('connectorPanel');
+    const connectorList = document.getElementById('connectorList');
+    const connectorCount = document.getElementById('connectorCount');
 
     if (!input || !scroller || !thread || !sendBtn) return;
 
     let busy = false;
+    let connectorState = {};
+    let connectorsLoaded = false;
+    const STORE_KEY = 'lifeops.connectors';
 
     // ---------- Safe markdown rendering ----------
     // All text is HTML-escaped first; only the tags generated below can appear in the page.
@@ -71,6 +78,91 @@
         return out.join('');
     }
 
+    // ---------- Connectors ----------
+    function readSaved() {
+        try { return JSON.parse(localStorage.getItem(STORE_KEY)) || {}; } catch (_) { return {}; }
+    }
+
+    function writeSaved() {
+        try { localStorage.setItem(STORE_KEY, JSON.stringify(connectorState)); } catch (_) { /* storage unavailable */ }
+    }
+
+    function enabledConnectors() {
+        return Object.keys(connectorState).filter((id) => connectorState[id]);
+    }
+
+    function updateConnectorCount() {
+        if (connectorCount) connectorCount.textContent = String(enabledConnectors().length);
+    }
+
+    function renderConnectors(list) {
+        connectorList.innerHTML = '';
+        list.forEach((c) => {
+            const row = document.createElement('label');
+            row.className = 'connector-row';
+
+            const text = document.createElement('span');
+            text.className = 'connector-text';
+            const name = document.createElement('span');
+            name.className = 'connector-name';
+            name.textContent = c.name;
+            const desc = document.createElement('span');
+            desc.className = 'connector-desc';
+            desc.textContent = c.description;
+            text.append(name, desc);
+
+            const toggle = document.createElement('input');
+            toggle.type = 'checkbox';
+            toggle.className = 'switch';
+            toggle.setAttribute('role', 'switch');
+            toggle.checked = !!connectorState[c.id];
+            toggle.addEventListener('change', () => {
+                connectorState[c.id] = toggle.checked;
+                writeSaved();
+                updateConnectorCount();
+            });
+
+            row.append(text, toggle);
+            connectorList.appendChild(row);
+        });
+    }
+
+    async function loadConnectors() {
+        if (!connectorBtn || !connectorPanel || !connectorList) return;
+        try {
+            const res = await fetch('/connectors');
+            const data = await res.json();
+            const list = Array.isArray(data.connectors) ? data.connectors : [];
+            const saved = readSaved();
+            list.forEach((c) => {
+                connectorState[c.id] = typeof saved[c.id] === 'boolean' ? saved[c.id] : !!c.default;
+            });
+            connectorsLoaded = list.length > 0;
+            renderConnectors(list);
+            updateConnectorCount();
+        } catch (_) {
+            connectorBtn.hidden = true; // the server falls back to its defaults
+        }
+    }
+
+    function setPanel(open) {
+        connectorPanel.hidden = !open;
+        connectorBtn.setAttribute('aria-expanded', String(open));
+    }
+
+    if (connectorBtn && connectorPanel) {
+        connectorBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            setPanel(connectorPanel.hidden);
+        });
+        document.addEventListener('click', (e) => {
+            if (!connectorPanel.hidden && !connectorPanel.contains(e.target)) setPanel(false);
+        });
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') setPanel(false);
+        });
+    }
+
     // ---------- Chat helpers ----------
     function scrollToBottom() {
         scroller.scrollTop = scroller.scrollHeight;
@@ -94,10 +186,30 @@
         scrollToBottom();
     }
 
-    function addAssistantMessage(text, isNotice, suggestions) {
+    function addAssistantMessage(text, isNotice, suggestions, sources) {
         const { content } = createRow('assistant');
         content.innerHTML = renderMarkdown(text);
         if (isNotice) content.classList.add('notice');
+
+        const links = (Array.isArray(sources) ? sources : []).filter(
+            (s) => s && typeof s.url === 'string' && s.url.startsWith('https://')
+        );
+        if (links.length) {
+            const src = document.createElement('div');
+            src.className = 'sources';
+            src.append('Sources: ');
+            links.slice(0, 8).forEach((s, i) => {
+                if (i > 0) src.append(' · ');
+                const a = document.createElement('a');
+                a.href = s.url;
+                a.target = '_blank';
+                a.rel = 'noopener noreferrer';
+                a.textContent = typeof s.title === 'string' && s.title ? s.title : s.url;
+                src.appendChild(a);
+            });
+            content.appendChild(src);
+        }
+
         if (Array.isArray(suggestions) && suggestions.length) {
             const bar = document.createElement('div');
             bar.className = 'followups';
@@ -145,6 +257,7 @@
         setBusy(true);
         thread.querySelectorAll('.followups').forEach((el) => el.remove());
         if (welcome) welcome.hidden = true;
+        setPanel(false);
         addUserMessage(text);
         input.value = '';
         autoResize();
@@ -158,7 +271,10 @@
             const res = await fetch('/chat', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ message: text })
+                body: JSON.stringify({
+                    message: text,
+                    connectors: connectorsLoaded ? enabledConnectors() : undefined
+                })
             });
             const raw = await res.text();
             let data = null;
@@ -173,7 +289,12 @@
                 reply = 'Sorry, something went wrong. Please try again.';
             }
             typing.row.remove();
-            addAssistantMessage(reply, !res.ok, res.ok && data ? data.suggestions : null);
+            addAssistantMessage(
+                reply,
+                !res.ok,
+                res.ok && data ? data.suggestions : null,
+                res.ok && data ? data.sources : null
+            );
         } catch (err) {
             typing.row.remove();
             addAssistantMessage('Could not reach the server. Please check your connection and try again.', true);
@@ -228,5 +349,6 @@
         });
     }
 
+    loadConnectors();
     input.focus();
 });

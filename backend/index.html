@@ -14,7 +14,17 @@
             <span>LifeOps OS</span>
             <span class="brand-sub">AI Portfolio Copilot</span>
         </div>
-        <button type="button" id="newChatBtn" class="ghost-btn">New chat</button>
+        <div class="topbar-actions">
+            <div class="connector-menu">
+                <button type="button" id="connectorBtn" class="ghost-btn" aria-expanded="false" aria-controls="connectorPanel">Connectors <span id="connectorCount" class="badge">0</span></button>
+                <div id="connectorPanel" class="connector-panel" hidden>
+                    <h2>Connectors</h2>
+                    <p class="connector-sub">Choose which data sources the agent may use. Changes apply to your next message.</p>
+                    <div id="connectorList"></div>
+                </div>
+            </div>
+            <button type="button" id="newChatBtn" class="ghost-btn">New chat</button>
+        </div>
     </header>
 
     <main id="messages" class="chat-scroll" role="log" aria-live="polite">
@@ -38,6 +48,14 @@
                         <button type="button" class="example" data-prompt="What tasks are pending?">What tasks are pending?</button>
                         <button type="button" class="example" data-prompt="How much did I spend on groceries?">How much did I spend on groceries?</button>
                         <button type="button" class="example" data-prompt="Which expense category had the highest total spending?">Which expense category had the highest total spending?</button>
+                    </div>
+                </div>
+
+                 <div class="example-group">
+                    <h2>Live connectors</h2>
+                    <div class="examples">
+                        <button type="button" class="example" data-prompt="What has Bowen built on GitHub?">What has Bowen built on GitHub?</button>
+                        <button type="button" class="example" data-prompt="What is Dataflow Prime?">What is Dataflow Prime? (switch on Google Search)</button>
                     </div>
                 </div>
             </section>
