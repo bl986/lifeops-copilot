@@ -100,9 +100,7 @@ pytest -v
 Render free web service, auto-deployed from `main`. Python is pinned with `.python-version` (3.11.9) and confirmed at `/health`. Build: `pip install -r requirements.txt && python backend/database.py`. Start: `uvicorn backend.main:app --host 0.0.0.0 --port $PORT`.
 
 ## How it was built
-The first version was written with Gemini through chat prompts (vibe coding). I then reviewed and rebuilt it with a second AI assistant as a reviewer, deciding myself what to apply and checking every change with diffs, tests, CI and live requests. See [docs/ai-review.md](docs/ai-review.md) for the findings and decisions.
-
-See [docs/project-timeline.md](docs/project-timeline.md) for the full build story.
+The first version was written with Gemini through chat prompts (vibe coding). I then had a second AI assistant review it and help rebuild it, deciding myself what to apply and checking every change with diffs, tests, CI and live requests. [docs/project-timeline.md](docs/project-timeline.md) has the full story: what broke, how I found the cause, and how I fixed it.
 
 ## Bugs I hit and how I fixed them
 - **Keyword routing replaced by function calling.** The first version used `if "task" in message` to pick data. The model now chooses tools itself.
@@ -121,6 +119,7 @@ See [docs/project-timeline.md](docs/project-timeline.md) for the full build stor
 - Not built on Google's Agent Development Kit; this uses the `google-genai` SDK directly.
 - The web app could act as a true MCP client instead of calling tools in-process.
 - Skills could be loaded on demand instead of always being in the prompt.
+- The GitHub connector uses GitHub's public API. Without a token it gets 60 requests per hour per IP, which shared hosting can exhaust.
 
 ## Credits
 Documentation excerpts in the Google Cloud docs connector: Google, licensed CC BY 4.0, with links to the source pages.
