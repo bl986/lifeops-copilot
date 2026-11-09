@@ -102,6 +102,8 @@ Render free web service, auto-deployed from `main`. Python is pinned with `.pyth
 ## How it was built
 The first version was written with Gemini through chat prompts (vibe coding). I then reviewed and rebuilt it with a second AI assistant as a reviewer, deciding myself what to apply and checking every change with diffs, tests, CI and live requests. See [docs/ai-review.md](docs/ai-review.md) for the findings and decisions.
 
+See [docs/project-timeline.md](docs/project-timeline.md) for the full build story.
+
 ## Bugs I hit and how I fixed them
 - **Keyword routing replaced by function calling.** The first version used `if "task" in message` to pick data. The model now chooses tools itself.
 - **Generated SQL missed data.** The model wrote `category = 'groceries'` but the data stored `'Groceries'`, and SQLite text comparison is case-sensitive, so the answer was $0. I found it by reading the generated SQL in the API response, added `COLLATE NOCASE`, told the model to compare case-insensitively, and added a regression test.
