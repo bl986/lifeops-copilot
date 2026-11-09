@@ -28,7 +28,7 @@ def test_tools_follow_connectors():
     assert tool_names(["portfolio"]) == ["get_portfolio"]
     assert tool_names([]) == []
     assert set(tool_names(connectors.IDS)) == {
-        "get_portfolio", "query_database", "get_github_activity", "search_google"}
+        "get_portfolio", "query_database", "get_github_activity", "search_gcp_docs", "search_google"}
 
 
 def test_note_lists_switched_off_connectors():

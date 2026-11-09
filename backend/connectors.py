@@ -10,8 +10,11 @@ CONNECTORS = [
     {"id": "github", "name": "GitHub (live)",
      "description": "Public repositories and latest commits, fetched live from GitHub's API.",
      "default": True},
+    {"id": "gcp_docs", "name": "Google Cloud docs",
+     "description": "Live passages from official Google Cloud documentation (BigQuery, Dataflow, Pub/Sub), with links.",
+     "default": True},
     {"id": "google_search", "name": "Google Search grounding",
-     "description": "Cited answers from the live web for Google Cloud and AI questions.",
+     "description": "Cited answers from the live web for Google Cloud and AI questions. -> Edit: Optional. Needs Gemini API search-grounding quota, which free keys may not include.",
      "default": False},
 ]
 
