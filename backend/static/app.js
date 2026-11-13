@@ -305,6 +305,124 @@
         }
     }
 
+    // ---------- Workflows (fixed steps, live progress) ----------
+    const STEP_ICON = { pending: '○', running: '◐', done: '✓', warning: '⚠', error: '✕' };
+
+    async function runWorkflow(id, name) {
+        if (busy) return;
+        setBusy(true);
+        thread.querySelectorAll('.followups').forEach((el) => el.remove());
+        if (welcome) welcome.hidden = true;
+        setPanel(false);
+        addUserMessage('Run workflow: ' + name);
+
+        const { content } = createRow('assistant');
+        const title = document.createElement('div');
+        title.className = 'wf-title';
+        title.textContent = name + ' (fixed steps)';
+        const list = document.createElement('ul');
+        list.className = 'wf-steps';
+        content.append(title, list);
+        const items = {};
+        let finished = false;
+
+        function setStep(stepId, status, extra) {
+            const li = items[stepId];
+            if (!li) return;
+            li.className = 'wf-step ' + status;
+            li.querySelector('.wf-icon').textContent = STEP_ICON[status] || '○';
+            li.querySelector('.wf-extra').textContent = extra || '';
+        }
+
+        function finish(event) {
+            finished = true;
+            const body = document.createElement('div');
+            body.className = 'wf-result' + (event.status === 'success' ? '' : ' notice');
+            body.innerHTML = renderMarkdown(event.response || '');
+            content.appendChild(body);
+
+            const links = (Array.isArray(event.sources) ? event.sources : []).filter(
+                (s) => s && typeof s.url === 'string' && s.url.startsWith('https://')
+            );
+            if (links.length) {
+                const src = document.createElement('div');
+                src.className = 'sources';
+                src.append('Sources: ');
+                links.slice(0, 8).forEach((s, i) => {
+                    if (i > 0) src.append(' · ');
+                    const a = document.createElement('a');
+                    a.href = s.url;
+                    a.target = '_blank';
+                    a.rel = 'noopener noreferrer';
+                    a.textContent = typeof s.title === 'string' && s.title ? s.title : s.url;
+                    src.appendChild(a);
+                });
+                content.appendChild(src);
+            }
+        }
+
+        function handle(event) {
+            if (event.event === 'start') {
+                (event.steps || []).forEach((s) => {
+                    const li = document.createElement('li');
+                    li.className = 'wf-step pending';
+                    li.innerHTML = '<span class="wf-icon">○</span><span class="wf-label"></span><span class="wf-extra"></span>';
+                    li.querySelector('.wf-label').textContent = s.label;
+                    list.appendChild(li);
+                    items[s.id] = li;
+                });
+            } else if (event.event === 'step') {
+                const extra = event.status === 'done' && event.seconds != null
+                    ? event.seconds + 's' : (event.detail || '');
+                setStep(event.id, event.status, extra);
+            } else if (event.event === 'result') {
+                finish(event);
+            }
+            scrollToBottom();
+        }
+
+        try {
+            const res = await fetch('/workflow', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    workflow: id,
+                    connectors: connectorsLoaded ? enabledConnectors() : undefined
+                })
+            });
+            if (!res.ok || !res.body) {
+                let data = null;
+                try { data = JSON.parse(await res.text()); } catch (_) { /* not JSON */ }
+                finish({ status: 'error', sources: [],
+                         response: (data && data.response) || 'Sorry, something went wrong. Please try again.' });
+            } else {
+                const reader = res.body.getReader();
+                const decoder = new TextDecoder();
+                let buffer = '';
+                while (true) {
+                    const { value, done } = await reader.read();
+                    if (done) break;
+                    buffer += decoder.decode(value, { stream: true });
+                    let newline;
+                    while ((newline = buffer.indexOf('\n')) >= 0) {
+                        const line = buffer.slice(0, newline).trim();
+                        buffer = buffer.slice(newline + 1);
+                        if (!line) continue;
+                        try { handle(JSON.parse(line)); } catch (e) { console.error('workflow event error', e); }
+                    }
+                }
+            }
+        } catch (err) {
+            console.error('workflow error', err);
+        }
+        if (!finished) {
+            finish({ status: 'error', sources: [], response: 'The workflow did not finish. Please try again.' });
+        }
+        setBusy(false);
+        scrollToBottom();
+        input.focus();
+    }
+
     // ---------- Events ----------
     sendBtn.addEventListener('click', sendMessage);
 
@@ -328,7 +446,12 @@
     if (welcome) {
         welcome.addEventListener('click', (e) => {
             const btn = e.target.closest('.example');
-            if (btn) usePrompt(btn.dataset.prompt || '');
+            if (!btn) return;
+            if (btn.dataset.workflow) {
+                runWorkflow(btn.dataset.workflow, btn.dataset.name || 'workflow');
+                return;
+            }
+            usePrompt(btn.dataset.prompt || '');
         });
     }
 

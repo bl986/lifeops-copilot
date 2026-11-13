@@ -349,3 +349,17 @@ body {
 .sources { margin-top: 10px; font-size: 0.8rem; color: #8e9196; }
 .sources a { color: #38bdf8; text-decoration: none; }
 .sources a:hover { text-decoration: underline; }
+.workflow-card strong { display: block; color: #f1f1f1; font-weight: 600; margin-bottom: 4px; }
+.workflow-card span { display: block; font-size: 0.8rem; color: #8e9196; line-height: 1.4; }
+.wf-title { font-weight: 600; color: #f1f1f1; margin-bottom: 8px; }
+.wf-steps { list-style: none; margin: 0 0 12px; padding: 0; }
+.wf-step { display: flex; align-items: baseline; gap: 10px; padding: 3px 0; font-size: 0.9rem; color: #8e9196; }
+.wf-icon { width: 16px; text-align: center; flex-shrink: 0; }
+.wf-extra { margin-left: auto; font-size: 0.8rem; }
+.wf-step.running { color: #e3e3e3; }
+.wf-step.running .wf-icon { color: #38bdf8; }
+.wf-step.done { color: #e3e3e3; }
+.wf-step.done .wf-icon { color: #22c55e; }
+.wf-step.warning { color: #fcd34d; }
+.wf-step.error { color: #f87171; }
+.wf-result.notice { color: #fcd34d; }
