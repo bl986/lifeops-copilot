@@ -10,6 +10,8 @@ A small, deployed AI agent. Visitors chat with it; Gemini decides which tool to 
 - Answers questions about a sample expenses and tasks database by having the model write SQL.
 - Reports live data from my public GitHub account.
 - Answers "what is this Google Cloud product" questions from official documentation, with links.
+- Explains how this app is built and why, from design notes in the repo.
+- Runs two fixed workflows (a recruiter brief and a project deep dive) and shows each step as it finishes.
 - Politely declines anything outside that scope, and tells the visitor which connector to switch on if a question needs one that is off.
 
 ## Connectors
@@ -18,29 +20,46 @@ A small, deployed AI agent. Visitors chat with it; Gemini decides which tool to 
 |---|---|---|---|
 | Portfolio profile | on | My background, from SQLite | Tool call, read-only SQL |
 | Sample database | on | Demo expenses and tasks | Model-written SQL, validated and read-only |
+| About this project | on | My design notes: architecture, decisions, trade-offs, testing, limits | Retrieval over markdown notes in the repo, BM25-style keyword ranking, links to the note on GitHub |
 | GitHub (live) | on | Public repos and latest commits | GitHub REST API, 10-minute cache |
 | Google Cloud docs | on | Passages from four official documentation pages | Live fetch from a fixed allowlist, 6-hour cache, BM25-style keyword ranking, citations |
 | Google Search grounding | off | Cited web answers | Gemini with the Google Search tool. Implemented, but it needs search-grounding quota that a free API key did not have |
 
 The agent only receives tools for the connectors that are switched on, so an "off" connector cannot be used. This is tool-based retrieval with citations; it does not use embeddings or a vector database.
 
+## Workflows
+Besides free-form chat, the app has two fixed workflows you can run from the welcome screen:
+- **Recruiter brief:** reads my profile from the database, fetches live GitHub activity, then writes a short summary.
+- **Project deep dive:** retrieves the relevant design notes, fetches the latest commits of this repository, then writes a summary.
+
+A workflow differs from the chat agent. In chat, the model decides which tools to call. In a workflow, code runs the same steps in the same order every time, and one model call with no tools writes the summary. Runs are predictable, quicker and cheaper, and the page shows each step as it finishes. A workflow needs its connectors to be switched on, and it tells you which one to enable if not. Workflows are read-only and use the same rate limits as chat.
+
 ## Architecture
 
 ```mermaid
 flowchart LR
     B[Browser chat UI with connector switches] -->|POST /chat| API[FastAPI: validation and rate limits]
+    B -->|POST /workflow| API
     API --> AG[agent.py: Gemini function calling]
+    API --> WF[workflows.py: fixed steps, live progress]
     AG --> H[harness.py: latency and error interception]
+    WF --> H
     AG -->|tool| P[get_portfolio]
     AG -->|tool| Q[query_database]
     AG -->|tool| G[get_github_activity]
     AG -->|tool| D[search_gcp_docs]
+    AG -->|tool| N[search_project_notes]
     AG -.->|off by default| S[search_google]
+    WF --> P
+    WF --> G
+    WF --> N
+    WF --> SUM[One Gemini call with no tools writes the summary]
     Q -->|model writes SQL| V[SELECT-only validator]
     V --> DB[(SQLite, read-only connection)]
     P --> DB
     G --> GH[GitHub public API, cached]
     D --> DOCS[Allowlisted Google Cloud doc pages, cached]
+    N --> NOTES[Design notes in backend/project_notes]
     S --> GS[Gemini with Google Search tool]
     MCP[mcp_server.py: FastMCP] -.exposes the same functions.-> P
     MCP -.-> Q
@@ -48,7 +67,7 @@ flowchart LR
 
 | Piece | File | What it does |
 |---|---|---|
-| API and static UI | `backend/main.py`, `index.html`, `static/` | Serves the chat page, validates input, rate limits, `/connectors`, `/health` (shows Python version and model) |
+| API and static UI | `backend/main.py`, `index.html`, `static/` | Serves the chat page, validates input, rate limits, `/connectors`, `/workflows`, `/workflow`, `/health` (shows Python version and model) |
 | Agent | `backend/agent.py` | Gemini function calling: the model picks tools; builds the tool list from enabled connectors; returns sources and follow-up prompts |
 | Connector registry | `backend/connectors.py` | Names, descriptions and defaults of the switchable connectors |
 | Tools / MCP server | `backend/mcp_server.py` | Portfolio and SQL tools, registered with FastMCP so any MCP client can use them. The web app calls the same functions in-process; it is not itself an MCP client |
@@ -59,6 +78,8 @@ flowchart LR
 | Skills | `backend/skills/*.md` | Markdown instruction files loaded into the system prompt. A simple version of agent skills, not on-demand discovery |
 | Harness | `backend/harness.py` | Wraps each run: latency, error interception, empty output treated as failure |
 | Rate limiting | `backend/ratelimit.py` | In-memory sliding window |
+| Project notes retrieval | `backend/project_tools.py`, `backend/project_notes/*.md` | Ranks passages from my own design notes and returns them with links to the note on GitHub |
+| Workflows | `backend/workflows.py` | Fixed multi-step recipes, streamed to the UI step by step; one tool-free model call writes the summary |
 
 ## Safety design
 SQL written by an LLM is untrusted input, so two independent layers protect the database:
@@ -73,7 +94,7 @@ Other measures:
 - The system prompt tells the model to ignore instructions inside user messages and tool results, and to say plainly when a tool is unavailable instead of answering from memory. The prompt is a mitigation, not a guarantee; the code-level layers above are the actual protection.
 
 ## Testing
-- `pytest` unit tests cover the SQL validator (including injection attempts), the read-only connection, the tools, the harness, rate limiting, connector toggling, GitHub caching and failure handling, docs ranking and caching, and the allowlist.
+- `pytest` unit tests cover the SQL validator (including injection attempts), the read-only connection, the tools, the harness, rate limiting, connector toggling, GitHub caching and failure handling, docs ranking and caching, the allowlist, project-note retrieval, and the workflows (step order, blocked connectors, outages and failures).
 - External services are stubbed in CI, so tests are free and deterministic. GitHub Actions runs them on every push.
 - `tests/test_agent.py` includes a live evaluation that checks the real model picks the right tool. It runs only when `GEMINI_API_KEY` is set.
 
@@ -95,6 +116,9 @@ pytest -v
 | `RATE_LIMIT_PER_MINUTE` / `RATE_LIMIT_GLOBAL_PER_HOUR` | Rate limits |
 | `DOCS_MIN_SCORE` | Minimum keyword score for docs passages |
 | `GROUNDING_MAX_PER_HOUR` | Cap on Google Search grounding calls |
+| `PROJECT_MIN_SCORE` | Minimum keyword score for project-note passages |
+| `PROJECT_REPO_NAME` | Repository used by the project deep dive workflow (default `lifeops-copilot`) |
+| `PROJECT_REPO_URL` | Base URL used for note links (default: this repository) |
 
 ## Deployment
 Render free web service, auto-deployed from `main`. Python is pinned with `.python-version` (3.11.9) and confirmed at `/health`. Build: `pip install -r requirements.txt && python backend/database.py`. Start: `uvicorn backend.main:app --host 0.0.0.0 --port $PORT`.

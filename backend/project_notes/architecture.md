@@ -24,6 +24,7 @@ LifeOps OS is a FastAPI web app. A visitor types a message in the browser chat. 
 - harness.py: wraps each run to measure time and catch errors.
 - ratelimit.py: an in-memory sliding-window rate limiter.
 - skills_loader.py: loads markdown skill files into the system prompt.
+- workflows.py: fixed multi-step workflows (recruiter brief, project deep dive) that gather data in code and stream progress to the page.
 
 ## Data and storage
 The data lives in a SQLite file that is rebuilt from seed data when the server starts. It holds portfolio rows plus demo expenses and tasks. Nothing a visitor types is stored. GitHub and documentation data are fetched live and cached in memory.

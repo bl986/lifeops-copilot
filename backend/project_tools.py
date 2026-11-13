@@ -75,5 +75,5 @@ def search_notes(question: str, min_score: float = None, passages: list = None) 
         if h["url"] not in seen:
             seen.add(h["url"])
             sources.append({"title": h["title"].split(":")[0], "url": h["url"]})
-    text = "\n\n---\n\n".join(f"Source: {h['title']}\n{h['text'][:1500]}" for h in hits)
+    text = "\n\n---\n\n".join(f"Source: {h['title']}\n{h['text'][:2500]}" for h in hits)
     return {"text": text, "sources": sources, "top_score": hits[0]["score"]}
