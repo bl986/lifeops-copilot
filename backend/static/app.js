@@ -13,9 +13,9 @@
     if (!input || !scroller || !thread || !sendBtn) return;
 
     let busy = false;
-    let workflowList = [];
     let connectorState = {};
     let connectorsLoaded = false;
+    let workflowList = [];
     const STORE_KEY = 'lifeops.connectors';
 
     // ---------- Safe markdown rendering ----------
@@ -147,6 +147,7 @@
     }
 
     function setPanel(open) {
+        if (!connectorPanel || !connectorBtn) return;
         connectorPanel.hidden = !open;
         connectorBtn.setAttribute('aria-expanded', String(open));
     }
@@ -187,29 +188,33 @@
         scrollToBottom();
     }
 
+    function sourcesBlock(sources) {
+        const links = (Array.isArray(sources) ? sources : []).filter(
+            (s) => s && typeof s.url === 'string' && s.url.startsWith('https://')
+        );
+        if (!links.length) return null;
+        const src = document.createElement('div');
+        src.className = 'sources';
+        src.append('Sources: ');
+        links.slice(0, 8).forEach((s, i) => {
+            if (i > 0) src.append(' · ');
+            const a = document.createElement('a');
+            a.href = s.url;
+            a.target = '_blank';
+            a.rel = 'noopener noreferrer';
+            a.textContent = typeof s.title === 'string' && s.title ? s.title : s.url;
+            src.appendChild(a);
+        });
+        return src;
+    }
+
     function addAssistantMessage(text, isNotice, suggestions, sources) {
         const { content } = createRow('assistant');
         content.innerHTML = renderMarkdown(text);
         if (isNotice) content.classList.add('notice');
 
-        const links = (Array.isArray(sources) ? sources : []).filter(
-            (s) => s && typeof s.url === 'string' && s.url.startsWith('https://')
-        );
-        if (links.length) {
-            const src = document.createElement('div');
-            src.className = 'sources';
-            src.append('Sources: ');
-            links.slice(0, 8).forEach((s, i) => {
-                if (i > 0) src.append(' · ');
-                const a = document.createElement('a');
-                a.href = s.url;
-                a.target = '_blank';
-                a.rel = 'noopener noreferrer';
-                a.textContent = typeof s.title === 'string' && s.title ? s.title : s.url;
-                src.appendChild(a);
-            });
-            content.appendChild(src);
-        }
+        const src = sourcesBlock(sources);
+        if (src) content.appendChild(src);
 
         if (Array.isArray(suggestions) && suggestions.length) {
             const bar = document.createElement('div');
@@ -306,6 +311,9 @@
         }
     }
 
+    // ---------- Workflows (fixed steps, live progress) ----------
+    const STEP_ICON = { pending: '○', running: '◐', done: '✓', warning: '⚠', error: '✕' };
+
     async function loadWorkflows() {
         try {
             const res = await fetch('/workflows');
@@ -344,9 +352,6 @@
         return bar.querySelector('button') ? bar : null;
     }
 
-    // ---------- Workflows (fixed steps, live progress) ----------
-    const STEP_ICON = { pending: '○', running: '◐', done: '✓', warning: '⚠', error: '✕' };
-
     async function runWorkflow(id, name) {
         if (busy) return;
         setBusy(true);
@@ -376,32 +381,14 @@
         function finish(event) {
             if (finished) return;
             finished = true;
-
-        function finish(event) {
-            finished = true;
             const body = document.createElement('div');
             body.className = 'wf-result' + (event.status === 'success' ? '' : ' notice');
             body.innerHTML = renderMarkdown(event.response || '');
             content.appendChild(body);
 
-            const links = (Array.isArray(event.sources) ? event.sources : []).filter(
-                (s) => s && typeof s.url === 'string' && s.url.startsWith('https://')
-            );
-            if (links.length) {
-                const src = document.createElement('div');
-                src.className = 'sources';
-                src.append('Sources: ');
-                links.slice(0, 8).forEach((s, i) => {
-                    if (i > 0) src.append(' · ');
-                    const a = document.createElement('a');
-                    a.href = s.url;
-                    a.target = '_blank';
-                    a.rel = 'noopener noreferrer';
-                    a.textContent = typeof s.title === 'string' && s.title ? s.title : s.url;
-                    src.appendChild(a);
-                });
-                content.appendChild(src);
-            }
+            const src = sourcesBlock(event.sources);
+            if (src) content.appendChild(src);
+
             const followups = buildWorkflowFollowups(event.suggestions, id);
             if (followups) content.appendChild(followups);
         }
