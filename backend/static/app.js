@@ -374,6 +374,10 @@
         }
 
         function finish(event) {
+            if (finished) return;
+            finished = true;
+
+        function finish(event) {
             finished = true;
             const body = document.createElement('div');
             body.className = 'wf-result' + (event.status === 'success' ? '' : ' notice');

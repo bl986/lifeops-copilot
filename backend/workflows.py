@@ -36,17 +36,17 @@ Format:
 2. Three bullets: experience, strongest skills, certifications and education.
 3. Two bullets about recent work, taken from the GitHub data.
 
-Keep it under 150 words."""
+Keep it under 150 words. Output only this format, with no extra lines or titles."""
 
 DEEP_DIVE_PROMPT = """Write a project deep dive of the LifeOps OS portfolio copilot using only the data below.
 
 Format:
-1. One sentence saying what it is.
+1. One sentence saying what it is. Do not mention anyone's location.
 2. **How it works**: a numbered list of 4 or 5 steps.
-3. **Key design decisions**: three bullets, each with its trade-off.
+3. **Key design decisions**: three bullets. Add a trade-off only when the data states one for that decision; never invent one.
 4. **Recent activity**: two or three bullets from the commit data.
 
-Keep it under 250 words."""
+Keep it under 250 words. Output only this format, with no extra lines or titles."""
 
 
 # ---------- Steps (each returns {"text", "sources", "ok"}) ----------
@@ -196,8 +196,6 @@ def run(workflow_id: str, enabled: list, summarize=None):
                "response": "I couldn't write the summary right now. Please try again in a moment."}
         return
     yield {"event": "step", "id": "summary", "status": "done", "seconds": outcome["latency_seconds"]}
-    yield {"event": "result", "status": "success", "response": outcome["response"],
-           "sources": sources[:8], "latency": round(time.monotonic() - started, 2)}
     yield {"event": "result", "status": "success", "response": outcome["response"],
         "sources": sources[:8], "latency": round(time.monotonic() - started, 2),
         "suggestions": agent.suggest_followups(workflow["name"], [], enabled)}

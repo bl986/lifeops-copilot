@@ -141,3 +141,7 @@ def test_workflow_endpoint_is_rate_limited(monkeypatch):
 def test_success_result_includes_followup_suggestions(fake_data):
     result = run("recruiter_brief")[-1]
     assert 1 <= len(result["suggestions"]) <= 3
+
+def test_exactly_one_result_event(fake_data):
+    events = run("recruiter_brief")
+    assert len([e for e in events if e["event"] == "result"]) == 1
