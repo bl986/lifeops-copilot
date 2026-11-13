@@ -59,6 +59,9 @@ def search_notes(question: str, min_score: float = None, passages: list = None) 
         return {"text": "NO_RELEVANT_NOTES: the project notes do not cover this question.",
                 "sources": [], "top_score": 0}
 
+    top = hits[0]["score"]
+    hits = [h for h in hits if h["score"] >= 0.7 * top]
+
     sources, seen = [], set()
     for h in hits:
         if h["url"] not in seen:

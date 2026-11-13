@@ -58,3 +58,8 @@ def test_agent_tool_records_sources(monkeypatch):
     assert "Architecture" in tools["search_project_notes"]("what is the architecture?")
     assert trace[0]["sources"][0]["title"] == "Architecture: Overview"
     assert trace[0]["top_score"] == 4.0
+
+def test_weak_matches_are_dropped(passages):
+    result = project_tools.search_notes("Why use SQLite?", passages=passages, min_score=0.0)
+    assert len(result["sources"]) == 1
+    assert "Why SQLite" in result["sources"][0]["title"]
