@@ -25,7 +25,8 @@ def test_notes_are_split_by_heading(passages):
 
 def test_ranking_finds_the_right_section(passages):
     result = project_tools.search_notes("Why use SQLite?", passages=passages, min_score=0.0)
-    assert "Why SQLite" in result["sources"][0]["title"]
+    assert result["sources"][0]["title"] == "Design decisions"
+    assert "Why SQLite" in result["text"]
     assert result["top_score"] > 0
 
 
@@ -37,9 +38,9 @@ def test_off_topic_question_returns_no_notes():
 
 def test_real_notes_answer_the_headline_questions():
     sqlite = project_tools.search_notes("Why does this project use SQLite?")
-    assert "SQLite" in sqlite["sources"][0]["title"]
+    assert "Why SQLite" in sqlite["text"]
     arch = project_tools.search_notes("What is the architecture of this project?")
-    assert arch["sources"][0]["title"].startswith("Architecture")
+    assert arch["sources"][0]["title"] == "Architecture"
 
 
 def test_every_note_file_has_sections():
@@ -61,5 +62,9 @@ def test_agent_tool_records_sources(monkeypatch):
 
 def test_weak_matches_are_dropped(passages):
     result = project_tools.search_notes("Why use SQLite?", passages=passages, min_score=0.0)
-    assert len(result["sources"]) == 1
-    assert "Why SQLite" in result["sources"][0]["title"]
+    assert "Why SQLite" in result["text"]
+    assert "Why FastAPI" not in result["text"]
+
+def test_generic_words_are_ignored_but_not_when_they_are_all_there_is():
+    assert "project" not in project_tools._clean_question("Why does this project use SQLite?").lower()
+    assert project_tools._clean_question("this project") == "this project"

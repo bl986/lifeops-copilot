@@ -1,5 +1,6 @@
 """Retrieval over the project's own design notes (backend/project_notes/*.md)."""
 import os
+import re
 from functools import lru_cache
 from pathlib import Path
 
@@ -11,6 +12,13 @@ NOTES_URL = REPO_URL + "/blob/main/backend/project_notes/"
 # Starting guess: check "top_score" in the API response for real questions and tune.
 MIN_SCORE = float(os.environ.get("PROJECT_MIN_SCORE", "1.0"))
 UNAVAILABLE = "The project notes are temporarily unavailable."
+_GENERIC = re.compile(r"\b(project|app|application|lifeops|copilot)\b", re.IGNORECASE)
+
+
+def _clean_question(question: str) -> str:
+    """Drop words that appear everywhere in these notes, so they don't skew the ranking."""
+    cleaned = _GENERIC.sub(" ", question)
+    return cleaned if docs_tools._tokens(cleaned) else question
 
 
 def load_passages(directory: Path = NOTES_DIR) -> list:
@@ -50,7 +58,7 @@ def search_notes(question: str, min_score: float = None, passages: list = None) 
         passages = _default_passages() if passages is None else passages
         if not passages:
             return {"text": UNAVAILABLE, "sources": [], "top_score": 0}
-        hits = docs_tools.rank(question, passages, k=4, min_score=min_score)
+        hits = docs_tools.rank(_clean_question(question), passages, k=4, min_score=min_score)
     except Exception as e:
         print(f"search_notes error: {e}")
         return {"text": UNAVAILABLE, "sources": [], "top_score": 0}
@@ -66,6 +74,6 @@ def search_notes(question: str, min_score: float = None, passages: list = None) 
     for h in hits:
         if h["url"] not in seen:
             seen.add(h["url"])
-            sources.append({"title": h["title"], "url": h["url"]})
+            sources.append({"title": h["title"].split(":")[0], "url": h["url"]})
     text = "\n\n---\n\n".join(f"Source: {h['title']}\n{h['text'][:1500]}" for h in hits)
     return {"text": text, "sources": sources, "top_score": hits[0]["score"]}
