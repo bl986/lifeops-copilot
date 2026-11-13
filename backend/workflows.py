@@ -198,3 +198,6 @@ def run(workflow_id: str, enabled: list, summarize=None):
     yield {"event": "step", "id": "summary", "status": "done", "seconds": outcome["latency_seconds"]}
     yield {"event": "result", "status": "success", "response": outcome["response"],
            "sources": sources[:8], "latency": round(time.monotonic() - started, 2)}
+    yield {"event": "result", "status": "success", "response": outcome["response"],
+        "sources": sources[:8], "latency": round(time.monotonic() - started, 2),
+        "suggestions": agent.suggest_followups(workflow["name"], [], enabled)}

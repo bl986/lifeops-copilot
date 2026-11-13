@@ -137,3 +137,7 @@ def test_workflow_endpoint_is_rate_limited(monkeypatch):
     blocked = client.post("/workflow", json={"workflow": "recruiter_brief"})
     assert blocked.status_code == 429
     assert "Retry-After" in blocked.headers
+
+def test_success_result_includes_followup_suggestions(fake_data):
+    result = run("recruiter_brief")[-1]
+    assert 1 <= len(result["suggestions"]) <= 3

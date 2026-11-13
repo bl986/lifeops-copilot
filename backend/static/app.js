@@ -13,6 +13,7 @@
     if (!input || !scroller || !thread || !sendBtn) return;
 
     let busy = false;
+    let workflowList = [];
     let connectorState = {};
     let connectorsLoaded = false;
     const STORE_KEY = 'lifeops.connectors';
@@ -305,6 +306,44 @@
         }
     }
 
+    async function loadWorkflows() {
+        try {
+            const res = await fetch('/workflows');
+            const data = await res.json();
+            workflowList = Array.isArray(data.workflows) ? data.workflows : [];
+        } catch (_) {
+            workflowList = [];
+        }
+    }
+
+    function buildWorkflowFollowups(suggestions, currentId) {
+        const bar = document.createElement('div');
+        bar.className = 'followups';
+        const label = document.createElement('span');
+        label.className = 'followups-label';
+        label.textContent = 'Try next:';
+        bar.appendChild(label);
+        workflowList.filter((w) => w.id !== currentId).forEach((w) => {
+            const btn = document.createElement('button');
+            btn.type = 'button';
+            btn.className = 'followup workflow-chip';
+            btn.textContent = 'Run workflow: ' + w.name;
+            btn.dataset.workflow = w.id;
+            btn.dataset.name = w.name;
+            bar.appendChild(btn);
+        });
+        (Array.isArray(suggestions) ? suggestions : []).slice(0, 3).forEach((s) => {
+            if (typeof s !== 'string') return;
+            const btn = document.createElement('button');
+            btn.type = 'button';
+            btn.className = 'followup';
+            btn.textContent = s;
+            btn.dataset.prompt = s;
+            bar.appendChild(btn);
+        });
+        return bar.querySelector('button') ? bar : null;
+    }
+
     // ---------- Workflows (fixed steps, live progress) ----------
     const STEP_ICON = { pending: '○', running: '◐', done: '✓', warning: '⚠', error: '✕' };
 
@@ -359,6 +398,8 @@
                 });
                 content.appendChild(src);
             }
+            const followups = buildWorkflowFollowups(event.suggestions, id);
+            if (followups) content.appendChild(followups);
         }
 
         function handle(event) {
@@ -457,7 +498,12 @@
 
     thread.addEventListener('click', (e) => {
         const btn = e.target.closest('.followup');
-        if (btn) usePrompt(btn.dataset.prompt || '');
+        if (!btn) return;
+        if (btn.dataset.workflow) {
+            runWorkflow(btn.dataset.workflow, btn.dataset.name || 'workflow');
+            return;
+        }
+        usePrompt(btn.dataset.prompt || '');
     });
 
     if (newChatBtn) {
@@ -473,5 +519,6 @@
     }
 
     loadConnectors();
+    loadWorkflows();
     input.focus();
 });

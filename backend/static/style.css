@@ -363,3 +363,4 @@ body {
 .wf-step.warning { color: #fcd34d; }
 .wf-step.error { color: #f87171; }
 .wf-result.notice { color: #fcd34d; }
+.workflow-chip { border-color: #3b82f6; color: #38bdf8; }
