@@ -63,7 +63,7 @@ def test_followups_lean_towards_the_tool_used():
 
 def test_every_suggestion_comes_from_the_known_pool():
     allowed = set(agent.PORTFOLIO_PROMPTS + agent.DATABASE_PROMPTS + agent.GITHUB_PROMPTS
-                + agent.SEARCH_PROMPTS + agent.DOCS_PROMPTS)
+                + agent.SEARCH_PROMPTS + agent.DOCS_PROMPTS + agent.PROJECT_PROMPTS)
     assert set(agent.suggest_followups("anything", [])) <= allowed
 
 

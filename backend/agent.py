@@ -5,7 +5,7 @@ import random
 from google import genai
 from google.genai import types
 
-from backend import connectors, docs_tools, github_tools, grounding, mcp_server
+from backend import connectors, docs_tools, github_tools, grounding, mcp_server, project_tools
 from backend.harness import AgentHarness
 from backend.skills_loader import load_agent_skills
 
@@ -19,7 +19,8 @@ Wording rules:
 - Bowen works as an extended-workforce supporting Google Cloud Platform. Do not need to say or imply he is a direct Google employee; say he supports Google Cloud Platform.
 
 How to answer:
-- For questions about Bowen's background (experience, certifications, education, projects, links, how this app was built), call get_portfolio and answer only from its result.
+- For questions about how this app is built (architecture, design decisions and why, trade-offs, safety, testing, limitations, how it was developed), call search_project_notes and answer only from the notes it returns, naming the note titles. If it returns NO_RELEVANT_NOTES, say the notes don't cover that. When asked about the architecture, describe it in plain text as a short numbered flow; the chat cannot draw diagrams, so point to the README diagram on GitHub.
+- For questions about Bowen's background (experience, certifications, education, projects, links), call get_portfolio and answer only from its result.
 - For questions about the expenses or tasks data, call query_database. This is sample data for a demo, not Bowen's real finances; say so when it is relevant.
 - For questions about what Bowen has built or is working on lately, call get_github_activity (live data from his public GitHub). Name the repositories you mention.
 - For questions about what Google Cloud products are or how they work, call search_gcp_docs and answer only from the passages it returns, naming the page titles. If it returns NO_RELEVANT_PASSAGES, say plainly that the documentation connector doesn't cover that. These are excerpts from public documentation, not Bowen's own statements. If the passages only partly answer the question, say what the documentation covers and that it goes no further; never add techniques, features or numbers that are not in the passages, and never present pricing or capacity information as a performance fix.
@@ -45,7 +46,6 @@ PORTFOLIO_PROMPTS = [
     "Which AI/ML products does Bowen have experience with?",
     "What certifications does Bowen hold?",
     "Where did Bowen study?",
-    "How was this app built?",
 ]
 DATABASE_PROMPTS = [
     "What tasks are pending?",
@@ -75,12 +75,23 @@ DOCS_PROMPTS = [
     "What analytics features does BigQuery offer?",
 ]
 
+PROJECT_PROMPTS = [
+    "What is the architecture of this project?",
+    "Why does this project use SQLite?",
+    "How was this app built?",
+    "How does the agent keep the SQL tool safe?",
+    "Why use function calling instead of keyword routing?",
+    "How is this project tested?",
+    "What are the limitations of this project?",
+]
+
 POOLS = {
     "portfolio": PORTFOLIO_PROMPTS,
     "sample_data": DATABASE_PROMPTS,
     "github": GITHUB_PROMPTS,
     "google_search": SEARCH_PROMPTS,
     "gcp_docs": DOCS_PROMPTS,
+    "project": PROJECT_PROMPTS,
 }
 CONNECTOR_TOOL = {
     "get_portfolio": "portfolio",
@@ -88,6 +99,7 @@ CONNECTOR_TOOL = {
     "get_github_activity": "github",
     "search_google": "google_search",
     "search_gcp_docs": "gcp_docs",
+    "search_project_notes": "project",
 }
 
 
@@ -134,6 +146,17 @@ def build_tools(trace: list, enabled=None):
             trace.append({"tool": "query_database", "question": question[:200]})
             return mcp_server.query_database(question)
         tools.append(query_database)
+
+    if "project" in enabled:
+        def search_project_notes(question: str) -> str:
+            """Search the notes about how this app is built: architecture, design decisions and trade-offs (for example why SQLite or function calling), safety, testing, limitations and how it was developed. Use for any question about this app itself. Pass the question in plain English."""
+            entry = {"tool": "search_project_notes", "question": question[:200], "sources": []}
+            trace.append(entry)
+            result = project_tools.search_notes(question[:500])
+            entry["sources"] = result["sources"]
+            entry["top_score"] = result["top_score"]
+            return result["text"]
+        tools.append(search_project_notes)
 
     if "github" in enabled:
         def get_github_activity(repo: str = "") -> str:
