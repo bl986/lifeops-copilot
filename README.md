@@ -11,7 +11,7 @@ A small, deployed AI agent. Visitors chat with it; Gemini decides which tool to 
 - Reports live data from my public GitHub account.
 - Answers "what is this Google Cloud product" questions from official documentation, with links.
 - Explains how this app is built and why, from design notes in the repo.
-- Runs two fixed workflows (a recruiter brief and a project deep dive) and shows each step as it finishes.
+- Runs two fixed workflows (a profile brief and a project deep dive) and shows each step as it finishes.
 - Politely declines anything outside that scope, and tells the visitor which connector to switch on if a question needs one that is off.
 
 ## Connectors
@@ -29,10 +29,10 @@ The agent only receives tools for the connectors that are switched on, so an "of
 
 ## Workflows
 Besides free-form chat, the app has two fixed workflows you can run from the welcome screen:
-- **Recruiter brief:** reads my profile from the database, fetches live GitHub activity, then writes a short summary.
+- **Profile brief:** reads my profile from the database, fetches live GitHub activity, then writes a short summary.
 - **Project deep dive:** retrieves the relevant design notes, fetches the latest commits of this repository, then writes a summary.
 
-A workflow differs from the chat agent. In chat, the model decides which tools to call. In a workflow, code runs the same steps in the same order every time, and one model call with no tools writes the summary. Runs are predictable, quicker and cheaper, and the page shows each step as it finishes. A workflow needs its connectors to be switched on, and it tells you which one to enable if not. Workflows are read-only and use the same rate limits as chat.
+A workflow differs from the chat agent. In chat, the model decides which tools to call. In a workflow, code runs the same steps in the same order every time, and one model call with no tools writes the summary. Runs are predictable and cheaper, and the page shows each step as it finishes. A workflow needs its connectors to be switched on, and it tells you which one to enable if not. Workflows are read-only and use the same rate limits as chat.
 
 ## Architecture
 
@@ -135,6 +135,9 @@ The first version was written with Gemini through chat prompts (vibe coding). I 
 - **Mocked tests passed while a live integration failed.** Google Search grounding returned 429 and 404 errors on my free key (the 3.x models had no grounding quota; 2.5 models were no longer available to new keys), while unit tests with stubbed calls stayed green. I now check live integrations separately, and the app tells visitors when a tool is unavailable instead of answering from memory.
 - **A tool failure was hidden by the model.** When the search call failed, the model answered from memory as if it had searched. A system-prompt rule now requires saying so plainly.
 - **Keyword scores do not measure relevance.** A loosely related question scored as high as a clean match, because the score grows with the number of matched common words. I tightened the prompt so partial matches are described as partial, and I treat the score as a debugging aid only.
+- **GitHub rate limit on shared hosting.** The GitHub connector returned 403 "rate limit exceeded", because unauthenticated calls get 60 requests an hour per IP and the host's IP is shared. A read-only token in an environment variable raises the limit, and the tool now tells the model not to retry when GitHub is down.
+- **A generic word skewed note ranking.** The word "project" matched an unrelated note first, the relevance filter cut the right one, and the model made a second call (12 s). I strip words that appear in every note, drop weak matches and label sources by note file; the same question then needed one call (2.6 s).
+- **A workflow result drawn twice.** A patch left two final result events in the stream, so the summary showed twice. I removed the extra event, added a guard in the page and a test that requires exactly one result event.
 
 ## Limitations and next steps
 - Docs retrieval is keyword-based over four pages; it can miss synonyms and is not a general knowledge base. Content can be up to 6 hours old.

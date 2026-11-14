@@ -6,7 +6,7 @@ This is the story of how I built this project, in order: what I built, what brok
 
 ## 1. Goal and scope
 
-I wanted a free, public project that shows I can design, build, test and troubleshoot an AI agent, not just call a model API. My checklist was:
+I wanted a free, public project to practice building an AI agent end to end: designing it, building it, testing it and troubleshooting it, not just calling a model API. My checklist was:
 
 - Architecture and system design
 - A custom MCP server
@@ -83,7 +83,7 @@ A live bug taught me something. "How much did I spend on groceries?" returned $0
 - **Rate limits:** a sliding window of 10 requests a minute per IP and 300 an hour overall, returning `429` with a `Retry-After` header. The global cap protects my free quota, because per-IP headers can be spoofed.
 - **Input:** messages are limited to 500 characters.
 - **Errors:** details are logged on the server and visitors see a generic message.
-- **Output:** all model text is HTML-escaped before it reaches the page, quotes are escaped so a crafted link cannot break out of an attribute, links get `rel="noopener noreferrer"`, and only `https://` links are rendered.
+- **Output:** all model text is HTML-escaped before it reaches the page, quotes are escaped so a crafted link cannot break out of an attribute, links get `rel="noopener noreferrer"`, and the Sources line only shows `https://` links.
 - **Dependencies:** test packages moved to `requirements-dev.txt`, so production installs stay small.
 - **Public text:** I corrected my employment description, pronouns and dates in the portfolio data, and removed personal details I did not want public. A system prompt rule keeps the agent from describing my role inaccurately.
 
@@ -98,37 +98,59 @@ Several UI changes looked broken at first because my browser had cached old CSS 
 I added a Connectors panel, like data sources in an enterprise AI assistant. A registry in `connectors.py` lists each connector, and my choices are remembered in the browser. The server gives the model only the tools for connectors that are switched on. If a question needs one that is off, the agent tells the visitor which switch to flip.
 
 - **Portfolio profile** and **Sample database:** the existing SQLite tools.
-- **GitHub (live):** my public repositories and latest commits from GitHub's free API. It has a 10-minute cache, serves stale data if GitHub fails, skips forks, only accepts names of my own repositories, and uses only the first line of each commit message.
-- **Google Search grounding:** I wrote and tested it, but live requests failed. The newer models returned `429 RESOURCE_EXHAUSTED` on my free key, and the 2.5 models returned `404`. It worked in the AI Studio playground but not through the API, so playground results do not predict API quota. A worse problem showed up too: when the tool failed, the model answered from memory as if it had searched. I fixed that with a system-prompt rule to say plainly when a tool is unavailable. The connector stays in the project, switched off by default, with an honest description.
-- **Google Cloud docs:** a retrieval connector over four official documentation pages (BigQuery overview, BigQuery analytics overview, Dataflow overview, Pub/Sub overview). I looked up the official URLs first and found that Google's docs now live on `docs.cloud.google.com`. The tool fetches the pages from a fixed allowlist (visitors never supply a URL), strips page navigation, splits the text into passages of about 900 characters, and ranks them with BM25-style keyword scoring (`k1=1.5`, `b=0.75`). It rejects redirects outside Google's domains, fetches pages in parallel, caches them for 6 hours, backs off for 60 seconds after a failed fetch, and returns passages with page titles and links. I chose keyword ranking because the corpus is small and fixed, it costs no extra API quota, and tests are deterministic.
+- **GitHub (live):** my public repositories and latest commits from GitHub's free API. It has a 10-minute cache, serves stale data if GitHub fails, skips forks, only accepts names of my own repositories, and uses only the first line of each commit message. On Render, the tool soon returned `403 rate limit exceeded`: unauthenticated calls get 60 requests an hour per IP, and the host's IP is shared. I added a read-only `GITHUB_TOKEN` environment variable (public data only), which raises the limit to 5,000 an hour, and I changed the failure message so the model stops retrying a tool that is down.
+- **Google Search grounding:** I wrote and tested it, but live requests failed. The newer models returned `429 RESOURCE_EXHAUSTED` on my free key, and `gemini-2.5-flash` returned `404`. It worked in the AI Studio playground but not through the API, so playground results do not predict API quota. A worse problem showed up too: when the tool failed, the model answered from memory as if it had searched. I fixed that with a system-prompt rule to say plainly when a tool is unavailable. The connector stays in the project, switched off by default, with an honest description.
+- **Google Cloud docs:** a retrieval connector over four official documentation pages (BigQuery overview, BigQuery analytics overview, Dataflow overview, Pub/Sub overview). I looked up the official URLs first and found that Google's docs now live on `docs.cloud.google.com`. The tool fetches the pages from a fixed allowlist (visitors never supply a URL), strips page navigation, splits the text into passages of about 900 characters, and ranks them with BM25-style keyword scoring (`k1=1.5`, `b=0.75`). It rejects redirects outside Google's domains, fetches pages in parallel, caches them for 6 hours, backs off for 60 seconds after a failed fetch, and returns passages with page titles and links. I chose keyword ranking because the corpus is small and fixed, it costs no extra API quota, and tests are deterministic. In testing, one troubleshooting question got extra points that the pages did not support, so I tightened the prompt: partial matches must say what the documentation covers and stop there. I also learned that the keyword score does not measure relevance (a loosely related question scored as high as a clean match), so I use it only as a debugging aid.
+- **About this project:** I wrote five short notes in the repo (architecture, design decisions, safety and testing, limitations, build story) and a connector that retrieves from them with the same keyword ranker. Each answer links to the note on GitHub, so questions like "Why SQLite?" are answered from my own reasoning. The first version had a ranking problem I found by reading `tools_called`: the generic word "project" matched an unrelated note first, the relevance filter then cut the right note, and the model made a second call (12 seconds). I now strip words that appear in every note from the query, drop passages below 70% of the top score, and label sources by note file. The same question then needed one call and took 2.6 seconds.
 
-In testing, answers came from the right pages. One troubleshooting question got extra points that the pages did not support, so I tightened the prompt: partial matches must say what the documentation covers and stop there. I also learned that the keyword score does not measure relevance (a loosely related question scored as high as a clean match), so I use it only as a debugging aid.
+## 11. Fixed workflows
 
-## 11. Current state
+Next to free-form chat I added two fixed workflows, a profile brief and a project deep dive. In chat the model decides which tools to call. In a workflow, code runs the same steps in the same order every time, and one model call with no tools writes the summary.
+
+- **Profile brief:** read the profile from the database, fetch live GitHub activity, write the summary.
+- **Project deep dive:** retrieve the relevant design notes, fetch the latest commits of this repository, write the summary.
+
+How it works in `workflows.py`:
+- Each workflow is a list of steps. Required steps stop the run if they fail. Optional steps, like GitHub, turn into a warning and the run continues without that data.
+- A workflow needs its connectors switched on. If one is off, it stops before doing anything and says which to enable.
+- The server streams progress as JSON lines from `POST /workflow` (a streaming response), and the page reads the stream and ticks each step with its time. Workflows use the same rate limits as chat and are read-only.
+- The summary call runs through the harness, and errors reach the visitor as a generic message.
+- A typical run takes about 3 seconds in total, mostly the summary call.
+
+Bugs and fixes:
+- **A result drawn twice.** A patch left two final result events in the stream, so the page showed the summary twice. I removed the extra event, added a guard in the page, and added a test that requires exactly one result event.
+- **An invented trade-off.** The deep dive summary added a trade-off my notes do not state, because the prompt asked for one on every bullet. I changed the prompt to allow a trade-off only when the data states it.
+- **A dead page after patching.** Several small edits to `app.js` left the Connectors badge at 0 and the buttons unresponsive. I replaced the file in one piece and now check the browser console first when a page stops responding.
+
+## 12. Current state
 
 - Live on Render with a pinned Python version, confirmed at `/health`.
-- Function calling over four switchable connectors, with sources shown under each answer.
+- Function calling over five switchable connectors (plus one that is off by default), with sources shown under each answer.
+- Two fixed workflows with live step progress.
 - Model-written SQL with two independent safety layers, plus a real FastMCP server exposing the same tools.
 - Markdown instruction files as simple agent skills, and a harness that measures latency, intercepts errors and treats an empty reply as a failure.
 - Rate limiting, input limits and escaped output.
 - Automated tests and CI on every push, with a live evaluation of tool choice that runs when an API key is set.
 
-## 12. What I learned
+## 13. What I learned
 
 - **Whole-file rewrites are risky.** Pasting complete files into a terminal reverted earlier fixes without warning. Editing with diffs, plus tests and CI, makes regressions loud.
 - **AI output needs checking.** The first AI made confident claims that were wrong or unsupported. A test, a diff, a live request or my own knowledge caught each one.
 - **Mocked tests can pass while a live integration fails.** My Google Search tests were green while the real call returned errors. I now verify each live integration separately.
-- **Read the generated SQL.** The grocery bug was invisible until I looked at the query the model actually wrote.
+- **Read what the model actually did.** The grocery bug and the notes ranking bug were both invisible until I read the generated SQL and the `tools_called` list.
 - **Design for the failing tool.** The agent should say so when a tool fails instead of answering from memory.
+- **Shared hosting shares limits.** Public APIs count requests per IP, so a free host's shared address can use up an unauthenticated allowance.
+- **Use a workflow when the steps never change.** A fixed recipe is more predictable and cheaper than letting the model choose each step, and it can show real progress.
 - **Protect secrets from the start.** Keys belong in the host's masked environment settings, never in a chat.
 
-## 13. Known limits and next steps
+## 14. Known limits and next steps
 
-- Docs retrieval is keyword-based over four pages. It can miss synonyms, and its content can be up to 6 hours old.
+- Docs and notes retrieval is keyword-based. It can miss synonyms, and docs content can be up to 6 hours old.
 - Rate limits are in memory, so they reset when the server restarts.
 - The web app calls the tools in-process. It is not itself an MCP client.
 - Skills are always loaded into the prompt, not loaded on demand.
 - I have not used Google's Agent Development Kit. This project uses the `google-genai` SDK directly.
-- Possible next steps: a small load test, on-demand skills, and a true MCP client path.
+- The GitHub token expires on a date I set, and the connector will fail soft until I replace it.
+- Possible next steps: a larger evaluation set with a printed pass rate, a small load test, on-demand skills, and a true MCP client path.
 
 Documentation excerpts used by the docs connector: Google, licensed CC BY 4.0, with links to the source pages.
